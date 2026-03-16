@@ -13,5 +13,8 @@ backend/data/
 .idea/
 .vscode/
 
+# Claude
+CLAUDE.md
+
 # Superpowers
 .superpowers/
