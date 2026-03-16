@@ -50,9 +50,16 @@ func NewRouter(s *Server) http.Handler {
 
 	// Auth routes
 	r.Route("/api/auth", func(r chi.Router) {
+		r.Post("/setup", s.handleSetup)
 		r.Post("/login", s.handleLogin)
 		r.Post("/refresh", s.handleRefresh)
 		r.Post("/logout", s.handleLogout)
+
+		// Protected auth routes
+		r.Group(func(r chi.Router) {
+			r.Use(auth.RequireAuth(s.JWT))
+			r.Post("/change-password", s.handleChangePassword)
+		})
 	})
 
 	// Admin routes (protected)
@@ -109,20 +116,6 @@ func (s *Server) handleListPublicCollections(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Server) handleGetPublicCollection(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-// --- Auth handlers ---
-
-func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-func (s *Server) handleRefresh(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	Error(w, http.StatusNotImplemented, "not implemented")
 }
 
