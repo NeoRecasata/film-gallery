@@ -1,11 +1,15 @@
 <script lang="ts">
-	import favicon from '$lib/assets/favicon.svg';
+	import '../app.css';
+	import type { LayoutServerData } from './$types';
 
-	let { children } = $props();
+	import type { Snippet } from 'svelte';
+
+	let { data, children }: { data: LayoutServerData; children: Snippet } = $props();
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<title>{data.settings.site_title}</title>
+	<meta name="description" content={data.settings.site_description} />
 </svelte:head>
 
 {@render children()}
