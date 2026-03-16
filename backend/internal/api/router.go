@@ -46,6 +46,7 @@ func NewRouter(s *Server) http.Handler {
 		r.Get("/photos/{slug}", s.handleGetPhoto)
 		r.Get("/collections", s.handleListCollections)
 		r.Get("/collections/{slug}", s.handleGetCollection)
+		r.Get("/site", s.handleGetSiteSettings)
 	})
 
 	// Auth routes
