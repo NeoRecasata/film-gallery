@@ -1,0 +1,17 @@
+# Go
+backend/server
+backend/data/
+
+# Env
+.env
+.env.local
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Superpowers
+.superpowers/
