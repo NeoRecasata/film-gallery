@@ -189,8 +189,8 @@ class ApiClient {
 
 	// Admin - Settings
 	async updateSiteSettings(settings: Partial<SiteSettings>): Promise<void> {
-		await this.request('/api/admin/site', {
-			method: 'PUT',
+		await this.request('/api/admin/settings', {
+			method: 'PATCH',
 			body: JSON.stringify(settings)
 		});
 	}
