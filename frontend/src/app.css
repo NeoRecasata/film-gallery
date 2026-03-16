@@ -1,0 +1,18 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+@import 'tailwindcss';
+
+@theme {
+	--color-bg: #111111;
+	--color-surface: #1a1a1a;
+	--color-surface-hover: #222222;
+	--color-border: rgba(255, 255, 255, 0.1);
+	--color-text: #f5f5f5;
+	--color-text-muted: #888888;
+	--color-accent: #f5f5f5;
+	--color-error: #ef4444;
+	--color-success: #22c55e;
+
+	--font-sans: 'Inter', system-ui, sans-serif;
+	--font-mono: 'JetBrains Mono', monospace;
+}
