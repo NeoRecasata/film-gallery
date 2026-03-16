@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
+
+	"github.com/NeoRecasata/film-gallery/backend/internal/config"
 )
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
 	}
 
 	mux := http.NewServeMux()
@@ -19,8 +20,8 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	log.Printf("Server starting on :%s", port)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), mux); err != nil {
+	log.Printf("Server starting on :%s", cfg.Port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", cfg.Port), mux); err != nil {
 		log.Fatal(err)
 	}
 }
