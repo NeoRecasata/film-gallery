@@ -44,8 +44,8 @@ func NewRouter(s *Server) http.Handler {
 		r.Get("/health", s.handleHealth)
 		r.Get("/photos", s.handleListPhotos)
 		r.Get("/photos/{slug}", s.handleGetPhoto)
-		r.Get("/collections", s.handleListPublicCollections)
-		r.Get("/collections/{slug}", s.handleGetPublicCollection)
+		r.Get("/collections", s.handleListCollections)
+		r.Get("/collections/{slug}", s.handleGetCollection)
 	})
 
 	// Auth routes
@@ -75,15 +75,14 @@ func NewRouter(s *Server) http.Handler {
 		r.Post("/photos/reorder", s.handleReorderPhotos)
 
 		// Collections
-		r.Get("/collections", s.handleAdminListCollections)
-		r.Post("/collections", s.handleAdminCreateCollection)
-		r.Get("/collections/{id}", s.handleAdminGetCollection)
-		r.Patch("/collections/{id}", s.handleAdminUpdateCollection)
-		r.Delete("/collections/{id}", s.handleAdminDeleteCollection)
+		r.Post("/collections", s.handleCreateCollection)
+		r.Patch("/collections/{id}", s.handleUpdateCollection)
+		r.Delete("/collections/{id}", s.handleDeleteCollection)
+		r.Put("/collections/{id}/photos", s.handleSetCollectionPhotos)
 
 		// Site settings
-		r.Get("/settings", s.handleAdminGetSettings)
-		r.Patch("/settings", s.handleAdminUpdateSettings)
+		r.Get("/settings", s.handleGetSiteSettings)
+		r.Patch("/settings", s.handleUpdateSiteSettings)
 	})
 
 	// Local file server for /media/* when using local storage
@@ -104,14 +103,6 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	JSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-func (s *Server) handleListPublicCollections(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-func (s *Server) handleGetPublicCollection(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
 // --- Admin photo handlers ---
 
 func (s *Server) handleAdminListPhotos(w http.ResponseWriter, r *http.Request) {
@@ -119,37 +110,5 @@ func (s *Server) handleAdminListPhotos(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAdminGetPhoto(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-// --- Admin collection handlers ---
-
-func (s *Server) handleAdminListCollections(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-func (s *Server) handleAdminCreateCollection(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-func (s *Server) handleAdminGetCollection(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-func (s *Server) handleAdminUpdateCollection(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-func (s *Server) handleAdminDeleteCollection(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-// --- Admin settings handlers ---
-
-func (s *Server) handleAdminGetSettings(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-func (s *Server) handleAdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
 	Error(w, http.StatusNotImplemented, "not implemented")
 }
