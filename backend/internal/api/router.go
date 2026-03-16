@@ -42,8 +42,8 @@ func NewRouter(s *Server) http.Handler {
 	// Public routes
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/health", s.handleHealth)
-		r.Get("/photos", s.handleListPublicPhotos)
-		r.Get("/photos/{slug}", s.handleGetPublicPhoto)
+		r.Get("/photos", s.handleListPhotos)
+		r.Get("/photos/{slug}", s.handleGetPhoto)
 		r.Get("/collections", s.handleListPublicCollections)
 		r.Get("/collections/{slug}", s.handleGetPublicCollection)
 	})
@@ -102,14 +102,6 @@ func NewRouter(s *Server) http.Handler {
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	JSON(w, http.StatusOK, map[string]string{"status": "ok"})
-}
-
-func (s *Server) handleListPublicPhotos(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-func (s *Server) handleGetPublicPhoto(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
 }
 
 func (s *Server) handleListPublicCollections(w http.ResponseWriter, r *http.Request) {
