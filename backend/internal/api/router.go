@@ -68,10 +68,11 @@ func NewRouter(s *Server) http.Handler {
 
 		// Photos
 		r.Get("/photos", s.handleAdminListPhotos)
-		r.Post("/photos", s.handleAdminUploadPhoto)
+		r.Post("/photos", s.handleUploadPhoto)
 		r.Get("/photos/{id}", s.handleAdminGetPhoto)
-		r.Patch("/photos/{id}", s.handleAdminUpdatePhoto)
-		r.Delete("/photos/{id}", s.handleAdminDeletePhoto)
+		r.Patch("/photos/{id}", s.handleUpdatePhoto)
+		r.Delete("/photos/{id}", s.handleDeletePhoto)
+		r.Post("/photos/reorder", s.handleReorderPhotos)
 
 		// Collections
 		r.Get("/collections", s.handleAdminListCollections)
@@ -125,19 +126,7 @@ func (s *Server) handleAdminListPhotos(w http.ResponseWriter, r *http.Request) {
 	Error(w, http.StatusNotImplemented, "not implemented")
 }
 
-func (s *Server) handleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
 func (s *Server) handleAdminGetPhoto(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-func (s *Server) handleAdminUpdatePhoto(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
-
-func (s *Server) handleAdminDeletePhoto(w http.ResponseWriter, r *http.Request) {
 	Error(w, http.StatusNotImplemented, "not implemented")
 }
 
