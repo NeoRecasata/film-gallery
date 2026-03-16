@@ -11,6 +11,7 @@ import (
 	"github.com/NeoRecasata/film-gallery/backend/internal/auth"
 	"github.com/NeoRecasata/film-gallery/backend/internal/config"
 	"github.com/NeoRecasata/film-gallery/backend/internal/media"
+	"github.com/NeoRecasata/film-gallery/backend/internal/models"
 	"github.com/NeoRecasata/film-gallery/backend/internal/storage"
 )
 
@@ -107,7 +108,44 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 // --- Admin photo handlers ---
 
 func (s *Server) handleAdminListPhotos(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
+	rows, err := s.DB.Query(`SELECT id, title, description, slug, film_stock, camera, lens, taken_at,
+		published, variants, width, height, file_size, blur_hash, sort_order, created_at, updated_at
+		FROM photos ORDER BY sort_order ASC, created_at DESC`)
+	if err != nil {
+		Error(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	defer rows.Close()
+
+	photos := []models.Photo{}
+	ctx := r.Context()
+
+	for rows.Next() {
+		var p models.Photo
+		var variantsJSON []byte
+		err := rows.Scan(
+			&p.ID, &p.Title, &p.Description, &p.Slug,
+			&p.FilmStock, &p.Camera, &p.Lens, &p.TakenAt,
+			&p.Published, &variantsJSON, &p.Width, &p.Height,
+			&p.FileSize, &p.BlurHash, &p.SortOrder, &p.CreatedAt, &p.UpdatedAt,
+		)
+		if err != nil {
+			Error(w, http.StatusInternalServerError, "failed to scan photo")
+			return
+		}
+
+		var variants models.PhotoVariants
+		variants.Scan(variantsJSON)
+		p.URLs = make(map[string]string)
+		for name, key := range variants {
+			url, _ := s.Storage.URL(ctx, key)
+			p.URLs[name] = url
+		}
+
+		photos = append(photos, p)
+	}
+
+	JSON(w, http.StatusOK, photosResponse{Data: photos})
 }
 
 func (s *Server) handleAdminGetPhoto(w http.ResponseWriter, r *http.Request) {

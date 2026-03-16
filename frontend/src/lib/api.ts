@@ -132,6 +132,10 @@ class ApiClient {
 	}
 
 	// Admin - Photos
+	async getAdminPhotos(): Promise<PhotosResponse> {
+		return this.request('/api/admin/photos');
+	}
+
 	async uploadPhoto(file: File, metadata?: Record<string, string>): Promise<Photo> {
 		const form = new FormData();
 		form.append('photo', file);

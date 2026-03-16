@@ -21,7 +21,7 @@
 	async function loadPhotos() {
 		loading = true;
 		try {
-			const res = await api.getPhotos(undefined, 100);
+			const res = await api.getAdminPhotos();
 			photos = res.data;
 		} catch (e) {
 			console.error('Failed to load photos:', e);
