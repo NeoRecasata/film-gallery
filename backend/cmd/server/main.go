@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/NeoRecasata/film-gallery/backend/internal/config"
+	"github.com/NeoRecasata/film-gallery/backend/internal/db"
 )
 
 func main() {
@@ -13,13 +14,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+	database, err := db.Connect(cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer database.Close()
+	if err := db.RunMigrations(database, cfg.MigrationsPath); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
-
 	log.Printf("Server starting on :%s", cfg.Port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", cfg.Port), mux); err != nil {
 		log.Fatal(err)
