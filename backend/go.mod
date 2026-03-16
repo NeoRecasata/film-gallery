@@ -33,4 +33,6 @@ require (
 	github.com/lib/pq v1.11.2 // indirect
 	golang.org/x/crypto v0.49.0 // indirect
 	golang.org/x/image v0.37.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/term v0.41.0 // indirect
 )
