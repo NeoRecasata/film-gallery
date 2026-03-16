@@ -8,7 +8,8 @@
 	let error = $state('');
 	let loading = $state(false);
 
-	async function handleSubmit() {
+	async function handleSubmit(e: Event) {
+		e.preventDefault();
 		error = '';
 		if (password !== confirmPassword) {
 			error = 'Passwords do not match';

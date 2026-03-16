@@ -7,7 +7,8 @@
 	let error = $state('');
 	let loading = $state(false);
 
-	async function handleSubmit() {
+	async function handleSubmit(e: Event) {
+		e.preventDefault();
 		error = '';
 		loading = true;
 		try {
