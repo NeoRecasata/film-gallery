@@ -6,6 +6,8 @@ require (
 	github.com/buckket/go-blurhash v1.1.0 // indirect
 	github.com/chai2010/webp v1.4.0 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
+	github.com/go-chi/chi/v5 v5.2.5 // indirect
+	github.com/go-chi/cors v1.2.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang-migrate/migrate/v4 v4.19.1 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
