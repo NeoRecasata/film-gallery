@@ -5,7 +5,7 @@
 
 	const links = [
 		{ href: '/admin', label: 'Dashboard', icon: '~' },
-		{ href: '/admin/photos', label: 'Photos', icon: '#' },
+		{ href: '/admin/rolls', label: 'Rolls', icon: '#' },
 		{ href: '/admin/collections', label: 'Collections', icon: '@' },
 		{ href: '/admin/settings', label: 'Settings', icon: '*' },
 		{ href: '/admin/account', label: 'Account', icon: '>' }
@@ -19,12 +19,12 @@
 	}
 </script>
 
-<aside class="w-56 bg-surface border-r border-border min-h-screen flex flex-col">
+<aside class="w-56 bg-surface border-r border-border h-full flex flex-col">
 	<div class="p-4 border-b border-border">
 		<a href="/admin" class="text-sm font-semibold tracking-wider uppercase">Admin</a>
 	</div>
 
-	<nav class="flex-1 p-2 space-y-1">
+	<nav class="flex-1 p-2 space-y-1 overflow-y-auto">
 		{#each links as link}
 			<a
 				href={link.href}

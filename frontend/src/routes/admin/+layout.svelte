@@ -13,9 +13,9 @@
 {#if isAuthPage}
 	{@render children()}
 {:else}
-	<div class="flex min-h-screen">
+	<div class="flex h-screen overflow-hidden">
 		<Sidebar />
-		<main class="flex-1 p-8 overflow-auto">
+		<main class="flex-1 p-8 overflow-y-auto">
 			{@render children()}
 		</main>
 	</div>
