@@ -70,6 +70,12 @@
 	let selectedIds = $state<Set<string>>(new Set());
 	let bulkActing = $state(false);
 	const selectedCount = $derived(selectedIds.size);
+	const allSelectedHidden = $derived(
+		selectedCount > 0 && photos.filter(p => selectedIds.has(p.id)).every(p => p.hidden)
+	);
+	const allSelectedVisible = $derived(
+		selectedCount > 0 && photos.filter(p => selectedIds.has(p.id)).every(p => !p.hidden)
+	);
 
 	// Reorder state
 	let reordering = $state(false);
@@ -681,10 +687,13 @@
 						{#if selecting}
 							<button onclick={selectAll} disabled={bulkActing} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted hover:text-text transition-colors disabled:opacity-50 inline-flex items-center gap-1">
 								<Icon name="list" class="w-3.5 h-3.5" /> All</button>
-							<button onclick={() => bulkSetHidden(false)} disabled={bulkActing || selectedCount === 0} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-success/70 hover:text-success transition-colors disabled:opacity-50 inline-flex items-center gap-1">
-								<Icon name="eye" class="w-3.5 h-3.5" /> Show</button>
-							<button onclick={() => bulkSetHidden(true)} disabled={bulkActing || selectedCount === 0} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted hover:text-text transition-colors disabled:opacity-50 inline-flex items-center gap-1">
-								<Icon name="eye-slash" class="w-3.5 h-3.5" /> Hide</button>
+							{#if allSelectedHidden}
+								<button onclick={() => bulkSetHidden(false)} disabled={bulkActing || selectedCount === 0} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-success/70 hover:text-success transition-colors disabled:opacity-50 inline-flex items-center gap-1">
+									<Icon name="eye" class="w-3.5 h-3.5" /> Show</button>
+							{:else}
+								<button onclick={() => bulkSetHidden(true)} disabled={bulkActing || selectedCount === 0} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted hover:text-text transition-colors disabled:opacity-50 inline-flex items-center gap-1">
+									<Icon name="eye-slash" class="w-3.5 h-3.5" /> Hide</button>
+							{/if}
 							<button onclick={requestBulkDelete} disabled={bulkActing || selectedCount === 0} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-error/70 hover:text-error transition-colors disabled:opacity-50 inline-flex items-center gap-1">
 								<Icon name="trash" class="w-3.5 h-3.5" /> Delete</button>
 							<button onclick={exitSelectMode} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted transition-colors inline-flex items-center gap-1">
