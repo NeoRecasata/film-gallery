@@ -29,7 +29,7 @@
 			<a
 				href={link.href}
 				class="flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
-					{page.url.pathname === link.href ? 'bg-surface-hover text-text' : 'text-text-muted hover:text-text hover:bg-surface-hover'}"
+					{(link.href === '/admin' ? page.url.pathname === '/admin' : page.url.pathname.startsWith(link.href)) ? 'bg-surface-hover text-text' : 'text-text-muted hover:text-text hover:bg-surface-hover'}"
 			>
 				<span class="font-mono text-xs w-4 text-center">{link.icon}</span>
 				{link.label}
