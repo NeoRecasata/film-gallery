@@ -504,7 +504,7 @@
 				</h2>
 
 				<!-- Photo grid (only this scrolls) -->
-				<div class="flex-1 overflow-y-auto rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto ? 'pb-[200px]' : ''}">
+				<div class="flex-1 overflow-y-auto rounded [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto ? 'pb-[200px]' : ''}">
 					{#if photos.length === 0}
 						<p class="text-text-muted text-sm py-8 text-center">No photos yet. Upload some above.</p>
 					{:else}
