@@ -27,7 +27,7 @@
 		try {
 			const [colls, photosRes] = await Promise.all([
 				api.getCollections(),
-				api.getPhotos(undefined, 100)
+				api.getAdminPhotos()
 			]);
 			// Find collection by ID, then load its detail by slug
 			const found = colls.find(c => c.id === collectionId);
@@ -148,13 +148,21 @@
 			{/if}
 
 			<h3 class="text-sm font-medium mt-6 mb-2 text-text-muted">Add photos</h3>
-			<div class="grid grid-cols-4 sm:grid-cols-8 gap-2">
+			<div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
 				{#each availablePhotos as photo}
 					<button
 						onclick={() => addPhoto(photo.id)}
-						class="aspect-square bg-surface rounded overflow-hidden opacity-60 hover:opacity-100 transition-opacity"
+						class="bg-surface rounded overflow-hidden opacity-60 hover:opacity-100 transition-opacity text-left"
 					>
-						<img src={photo.urls.thumb} alt={photo.title || ''} class="w-full h-full object-cover" />
+						<div class="aspect-square relative">
+							<img src={photo.urls.thumb} alt={photo.title || ''} class="w-full h-full object-cover" />
+							{#if photo.hidden}
+								<span class="absolute top-1 left-1 px-1 py-0.5 bg-error/80 text-white text-[8px] font-semibold uppercase rounded">Hidden</span>
+							{/if}
+						</div>
+						{#if photo.roll_title}
+							<p class="px-1.5 py-1 text-[10px] text-text-muted truncate">{photo.roll_title}</p>
+						{/if}
 					</button>
 				{/each}
 			</div>
