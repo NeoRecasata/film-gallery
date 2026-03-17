@@ -519,7 +519,7 @@
 											role="button"
 											tabindex="0"
 											class="block w-full rounded overflow-hidden relative group cursor-pointer
-												{selectedPhotoId === photo.id ? 'ring-2 ring-amber-500' : ''}"
+												{selectedPhotoId === photo.id ? 'ring-2 ring-inset ring-amber-500' : ''}"
 										>
 											<img
 												src={photo.urls.thumb}
