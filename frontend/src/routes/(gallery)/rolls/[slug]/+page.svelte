@@ -52,7 +52,7 @@
 	{#if roll.photos && roll.photos.length > 0}
 		<MasonryGrid photos={roll.photos} onphotoclick={openLightbox}>
 			{#snippet photo(props)}
-				<PhotoCard photo={props.photo} />
+				<PhotoCard photo={props.photo} showOverlay />
 			{/snippet}
 		</MasonryGrid>
 	{:else}

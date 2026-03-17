@@ -33,7 +33,7 @@
 	{#if collection.photos && collection.photos.length > 0}
 		<MasonryGrid photos={collection.photos} onphotoclick={openLightbox}>
 			{#snippet photo(props)}
-				<PhotoCard photo={props.photo} />
+				<PhotoCard photo={props.photo} showOverlay />
 			{/snippet}
 		</MasonryGrid>
 	{:else}
