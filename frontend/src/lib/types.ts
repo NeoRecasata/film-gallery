@@ -7,7 +7,11 @@ export interface Photo {
 	camera: string | null;
 	lens: string | null;
 	taken_at: string | null;
-	published: boolean;
+	hidden: boolean;
+	roll_id: string;
+	location: string | null;
+	roll_slug?: string;
+	roll_title?: string;
 	width: number;
 	height: number;
 	file_size: number;
@@ -55,6 +59,38 @@ export interface User {
 	id: string;
 	email: string;
 	created_at: string;
+}
+
+export interface Roll {
+	id: string;
+	title: string;
+	slug: string;
+	description: string | null;
+	camera: string | null;
+	film_stock: string | null;
+	lens: string | null;
+	location: string | null;
+	shot_at: string | null;
+	published: boolean;
+	cover_photo_id: string | null;
+	sort_order: number;
+	created_at: string;
+	updated_at: string;
+	photos?: Photo[];
+	photo_count?: number;
+	cover_url?: string | null;
+}
+
+export interface AdminStats {
+	roll_count: number;
+	photo_count: number;
+	collection_count: number;
+	storage_bytes: number;
+}
+
+export interface UploadResult {
+	uploaded: Photo[];
+	failed: { filename: string; error: string }[];
 }
 
 export interface ApiError {
