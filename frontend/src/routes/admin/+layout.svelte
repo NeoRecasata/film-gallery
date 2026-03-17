@@ -11,6 +11,10 @@
 	);
 </script>
 
+<svelte:head>
+	<title>Admin</title>
+</svelte:head>
+
 <Toast />
 
 {#if isAuthPage}
