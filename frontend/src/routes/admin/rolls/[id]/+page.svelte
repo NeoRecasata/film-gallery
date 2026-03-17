@@ -363,10 +363,10 @@
 {:else if !roll}
 	<p class="text-error">Roll not found.</p>
 {:else}
-	<!-- Fixed layout: top bar + content area -->
-	<div class="flex flex-col h-full">
-		<!-- Top bar - sticky -->
-		<div class="flex items-center justify-between pb-4 flex-shrink-0 border-b border-border mb-0">
+	<!-- Fixed layout: top bar + content area — fill parent, no scroll on this level -->
+	<div class="flex flex-col" style="height: calc(100vh - 4rem);">
+		<!-- Top bar -->
+		<div class="flex items-center justify-between pb-4 flex-shrink-0 border-b border-border">
 			<div class="flex items-center gap-2 text-sm">
 				<a href="/admin/rolls" class="text-text-muted hover:text-text transition-colors">&larr; Rolls</a>
 				<span class="text-text-muted/40">/</span>
@@ -392,9 +392,9 @@
 		</div>
 
 		<!-- Content area: sidebar + photos -->
-		<div class="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 pt-6">
-			<!-- Left sidebar - metadata -->
-			<div class="w-full lg:w-[280px] flex-shrink-0">
+		<div class="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 overflow-hidden pt-6">
+			<!-- Left sidebar - metadata (scrolls independently, hidden scrollbar) -->
+			<div class="w-full lg:w-[280px] flex-shrink-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 				<div class="bg-surface border border-border rounded-lg p-5 space-y-4">
 					<h2 class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Metadata</h2>
 
@@ -493,12 +493,14 @@
 			</div>
 
 			<!-- Right area - photos -->
-			<div class="flex-1 min-w-0">
-				<!-- Upload zone -->
-				<UploadQueue rollId={roll.id} onuploaded={handleUploaded} />
+			<div class="flex-1 min-w-0 flex flex-col min-h-0">
+				<!-- Upload zone (stays at top) -->
+				<div class="flex-shrink-0">
+					<UploadQueue rollId={roll.id} onuploaded={handleUploaded} />
+				</div>
 
-				<!-- Photo grid -->
-				<div class="mt-6">
+				<!-- Photo grid (only this scrolls) -->
+				<div class="mt-4 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto ? 'pb-[200px]' : ''}">
 					<h2 class="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-3">
 						Photos ({photos.length})
 					</h2>
