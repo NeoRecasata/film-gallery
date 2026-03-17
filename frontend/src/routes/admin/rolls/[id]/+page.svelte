@@ -605,7 +605,7 @@
 
 <!-- Floating photo editor - fixed to bottom -->
 {#if selectedPhoto && roll}
-	<div class="fixed bottom-0 left-56 right-0 z-50 bg-surface border-t border-border shadow-[0_-4px_24px_rgba(0,0,0,0.4)]">
+	<div class="fixed bottom-4 right-10 z-50 bg-surface border border-border rounded-lg shadow-[0_-4px_24px_rgba(0,0,0,0.4)]" style="left: calc(14rem + 2rem + 280px + 1.5rem + 2rem);">
 		<div class="flex gap-5 p-4 max-w-full">
 			<!-- Preview (left) -->
 			<div class="w-[160px] flex-shrink-0">
