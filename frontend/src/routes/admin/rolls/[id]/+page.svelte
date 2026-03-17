@@ -6,6 +6,7 @@
 	import { toasts } from '$lib/stores/toast';
 	import UploadQueue from '$lib/components/admin/UploadQueue.svelte';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
+	import MetadataSelect from '$lib/components/admin/MetadataSelect.svelte';
 
 	let rollId = $derived(page.params.id as string);
 	let roll = $state<Roll | null>(null);
@@ -444,47 +445,23 @@
 					</div>
 
 					<div>
-						<label for="roll-camera" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Camera</label>
-						<input
-							id="roll-camera"
-							bind:value={camera}
-							placeholder="Camera"
-							list="suggestions-camera"
-							class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
-						/>
+						<label class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Camera</label>
+						<MetadataSelect bind:value={camera} options={suggestions.camera || []} placeholder="Camera" />
 					</div>
 
 					<div>
-						<label for="roll-film" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Film Stock</label>
-						<input
-							id="roll-film"
-							bind:value={filmStock}
-							placeholder="Film Stock"
-							list="suggestions-film_stock"
-							class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
-						/>
+						<label class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Film Stock</label>
+						<MetadataSelect bind:value={filmStock} options={suggestions.film_stock || []} placeholder="Film Stock" />
 					</div>
 
 					<div>
-						<label for="roll-lens" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Lens</label>
-						<input
-							id="roll-lens"
-							bind:value={lens}
-							placeholder="Lens"
-							list="suggestions-lens"
-							class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
-						/>
+						<label class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Lens</label>
+						<MetadataSelect bind:value={lens} options={suggestions.lens || []} placeholder="Lens" />
 					</div>
 
 					<div>
-						<label for="roll-location" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Location</label>
-						<input
-							id="roll-location"
-							bind:value={location}
-							placeholder="Location"
-							list="suggestions-location"
-							class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
-						/>
+						<label class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Location</label>
+						<MetadataSelect bind:value={location} options={suggestions.location || []} placeholder="Location" />
 					</div>
 
 					<div>
@@ -721,15 +698,3 @@
 	</div>
 {/if}
 
-<datalist id="suggestions-camera">
-	{#each suggestions.camera || [] as val}<option value={val} />{/each}
-</datalist>
-<datalist id="suggestions-film_stock">
-	{#each suggestions.film_stock || [] as val}<option value={val} />{/each}
-</datalist>
-<datalist id="suggestions-lens">
-	{#each suggestions.lens || [] as val}<option value={val} />{/each}
-</datalist>
-<datalist id="suggestions-location">
-	{#each suggestions.location || [] as val}<option value={val} />{/each}
-</datalist>
