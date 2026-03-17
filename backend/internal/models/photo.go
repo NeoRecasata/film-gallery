@@ -38,8 +38,10 @@ type Photo struct {
 	FilmStock   *string       `json:"film_stock"`
 	Camera      *string       `json:"camera"`
 	Lens        *string       `json:"lens"`
+	Location    *string       `json:"location"`
 	TakenAt     *time.Time    `json:"taken_at"`
-	Published   bool          `json:"published"`
+	RollID      string        `json:"roll_id"`
+	Hidden      bool          `json:"hidden"`
 	OriginalKey string        `json:"-"`
 	Variants    PhotoVariants `json:"-"`
 	Width       int           `json:"width"`
@@ -49,5 +51,9 @@ type Photo struct {
 	SortOrder   int           `json:"sort_order"`
 	CreatedAt   time.Time     `json:"created_at"`
 	UpdatedAt   time.Time     `json:"updated_at"`
-	URLs        map[string]string `json:"urls,omitempty"`
+
+	// Populated at API level
+	URLs      map[string]string `json:"urls,omitempty"`
+	RollSlug  string            `json:"roll_slug,omitempty"`
+	RollTitle string            `json:"roll_title,omitempty"`
 }
