@@ -103,25 +103,28 @@
 		{showMeta ? 'Hide info' : 'Info'}
 	</button>
 
-	<!-- Metadata overlay -->
-	{#if showMeta && photo}
-		<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 pt-16">
-			{#if photo.title}
-				<h2 class="text-white text-lg font-medium">{photo.title}</h2>
-			{/if}
-			{#if photo.description}
-				<p class="text-white/70 text-sm mt-1">{photo.description}</p>
-			{/if}
-			<div class="flex gap-4 mt-2 text-white/50 text-xs">
-				{#if photo.film_stock}<span>{photo.film_stock}</span>{/if}
-				{#if photo.camera}<span>{photo.camera}</span>{/if}
-				{#if photo.lens}<span>{photo.lens}</span>{/if}
+	<!-- Bottom bar: counter + metadata -->
+	<div class="absolute bottom-0 left-0 right-0 z-10">
+		{#if showMeta && photo}
+			<div class="bg-gradient-to-t from-black/80 to-transparent p-6 pt-16">
+				{#if photo.title}
+					<h2 class="text-white text-lg font-medium">{photo.title}</h2>
+				{/if}
+				{#if photo.description}
+					<p class="text-white/70 text-sm mt-1">{photo.description}</p>
+				{/if}
+				<div class="flex items-center gap-4 mt-2 text-white/50 text-xs">
+					<span class="text-white/30">{index + 1} / {photos.length}</span>
+					{#if photo.film_stock}<span>{photo.film_stock}</span>{/if}
+					{#if photo.camera}<span>{photo.camera}</span>{/if}
+					{#if photo.lens}<span>{photo.lens}</span>{/if}
+					{#if photo.location}<span>{photo.location}</span>{/if}
+				</div>
 			</div>
-		</div>
-	{/if}
-
-	<!-- Counter -->
-	<div class="absolute bottom-4 left-4 text-white/30 text-sm">
-		{index + 1} / {photos.length}
+		{:else}
+			<div class="p-4">
+				<span class="text-white/30 text-sm">{index + 1} / {photos.length}</span>
+			</div>
+		{/if}
 	</div>
 </div>
