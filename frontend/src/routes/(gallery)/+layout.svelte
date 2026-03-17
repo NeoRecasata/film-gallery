@@ -14,6 +14,7 @@
 				{settings.photographer_name || settings.site_title}
 			</a>
 			<div class="flex items-center gap-6 text-sm text-text-muted">
+				<a href="/rolls" class="hover:text-text transition-colors">Rolls</a>
 				<a href="/collections" class="hover:text-text transition-colors">Collections</a>
 				<a href="/about" class="hover:text-text transition-colors">About</a>
 			</div>
