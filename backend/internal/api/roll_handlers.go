@@ -1,10 +1,14 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -312,4 +316,207 @@ func (s *Server) handleDeleteRoll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	JSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+// --- Upload & Reorder ---
+
+func (s *Server) handleUploadRollPhotos(w http.ResponseWriter, r *http.Request) {
+	rollID := chi.URLParam(r, "id")
+
+	// Verify roll exists and get its slug
+	var rollSlug string
+	err := s.DB.QueryRow("SELECT slug FROM rolls WHERE id = $1", rollID).Scan(&rollSlug)
+	if err != nil {
+		Error(w, http.StatusNotFound, "roll not found")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+		Error(w, http.StatusRequestEntityTooLarge, "upload too large (max 100MB)")
+		return
+	}
+
+	files := r.MultipartForm.File["files"]
+	if len(files) == 0 {
+		Error(w, http.StatusBadRequest, "no files provided")
+		return
+	}
+
+	type failedUpload struct {
+		Filename string `json:"filename"`
+		Error    string `json:"error"`
+	}
+
+	uploaded := []models.Photo{}
+	failed := []failedUpload{}
+
+	for _, fh := range files {
+		photo, err := s.processAndStorePhoto(r.Context(), fh, rollID, rollSlug)
+		if err != nil {
+			failed = append(failed, failedUpload{Filename: fh.Filename, Error: err.Error()})
+			continue
+		}
+		uploaded = append(uploaded, *photo)
+	}
+
+	JSON(w, http.StatusCreated, map[string]interface{}{
+		"uploaded": uploaded,
+		"failed":   failed,
+	})
+}
+
+func (s *Server) processAndStorePhoto(ctx context.Context, fh *multipart.FileHeader, rollID, rollSlug string) (*models.Photo, error) {
+	file, err := fh.Open()
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file")
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file")
+	}
+
+	// Validate file type
+	ext := strings.ToLower(filepath.Ext(fh.Filename))
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".tiff" && ext != ".tif" {
+		return nil, fmt.Errorf("unsupported file type (use JPEG, PNG, or TIFF)")
+	}
+
+	// Extract dimensions
+	origWidth, origHeight, err := s.Processor.ExtractDimensions(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read image dimensions")
+	}
+
+	// Generate variants
+	variants, err := s.Processor.GenerateVariants(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to process image")
+	}
+
+	// Generate BlurHash from thumbnail
+	blurHash, err := s.Processor.GenerateBlurHash(bytes.NewReader(variants["thumb"].Data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate blur hash")
+	}
+
+	// Generate photo ID
+	var photoID string
+	err = s.DB.QueryRow("SELECT gen_random_uuid()").Scan(&photoID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate ID")
+	}
+
+	// Generate slug: rollSlug-N
+	var photoCount int
+	s.DB.QueryRow("SELECT COUNT(*) FROM photos WHERE roll_id = $1", rollID).Scan(&photoCount)
+	photoSlug := fmt.Sprintf("%s-%d", rollSlug, photoCount+1)
+	photoSlug, err = s.ensureUniqueSlug(ctx, "photos", photoSlug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate slug")
+	}
+
+	// Store original
+	originalKey := fmt.Sprintf("photos/%s/original%s", photoID, ext)
+	if err := s.Storage.Put(ctx, originalKey, bytes.NewReader(data)); err != nil {
+		return nil, fmt.Errorf("failed to store original")
+	}
+
+	// Store variants
+	variantKeys := make(models.PhotoVariants)
+	for name, v := range variants {
+		key := fmt.Sprintf("photos/%s/%s.webp", photoID, name)
+		if err := s.Storage.Put(ctx, key, bytes.NewReader(v.Data)); err != nil {
+			return nil, fmt.Errorf("failed to store %s variant", name)
+		}
+		variantKeys[name] = key
+	}
+
+	variantsJSON, err := json.Marshal(variantKeys)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize variants")
+	}
+
+	// Get next sort order within roll
+	var nextOrder int
+	s.DB.QueryRow("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM photos WHERE roll_id = $1", rollID).Scan(&nextOrder)
+
+	// Insert into database
+	var photo models.Photo
+	err = s.DB.QueryRowContext(ctx, `
+		INSERT INTO photos (id, slug, roll_id, original_key, variants, width, height,
+			file_size, blur_hash, sort_order)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		RETURNING id, title, description, slug, film_stock, camera, lens, location, taken_at,
+			roll_id, hidden, width, height, file_size, blur_hash, sort_order, created_at, updated_at`,
+		photoID, photoSlug, rollID, originalKey, variantsJSON,
+		origWidth, origHeight, len(data), blurHash, nextOrder,
+	).Scan(
+		&photo.ID, &photo.Title, &photo.Description, &photo.Slug,
+		&photo.FilmStock, &photo.Camera, &photo.Lens, &photo.Location, &photo.TakenAt,
+		&photo.RollID, &photo.Hidden, &photo.Width, &photo.Height,
+		&photo.FileSize, &photo.BlurHash, &photo.SortOrder, &photo.CreatedAt, &photo.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save photo")
+	}
+
+	// Populate URLs
+	photo.URLs = make(map[string]string)
+	for name, key := range variantKeys {
+		url, _ := s.Storage.URL(ctx, key)
+		photo.URLs[name] = url
+	}
+
+	return &photo, nil
+}
+
+func (s *Server) handleReorderRollPhotos(w http.ResponseWriter, r *http.Request) {
+	rollID := chi.URLParam(r, "id")
+
+	// Verify roll exists
+	var exists bool
+	s.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM rolls WHERE id = $1)", rollID).Scan(&exists)
+	if !exists {
+		Error(w, http.StatusNotFound, "roll not found")
+		return
+	}
+
+	var req struct {
+		Orders []struct {
+			ID        string `json:"id"`
+			SortOrder int    `json:"sort_order"`
+		} `json:"orders"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	tx, err := s.DB.Begin()
+	if err != nil {
+		Error(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	defer tx.Rollback()
+
+	for _, o := range req.Orders {
+		_, err := tx.Exec(
+			"UPDATE photos SET sort_order = $1 WHERE id = $2 AND roll_id = $3",
+			o.SortOrder, o.ID, rollID,
+		)
+		if err != nil {
+			Error(w, http.StatusInternalServerError, "failed to update order")
+			return
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		Error(w, http.StatusInternalServerError, "failed to commit reorder")
+		return
+	}
+
+	JSON(w, http.StatusOK, map[string]string{"status": "reordered"})
 }
