@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { api } from '$lib/api';
 	import type { Photo } from '$lib/types';
+	import type { AdminStats } from '$lib/types';
 
-	let photoCount = $state(0);
-	let collectionCount = $state(0);
+	let stats = $state<AdminStats | null>(null);
 	let recentPhotos = $state<Photo[]>([]);
 	let loading = $state(true);
 
@@ -13,18 +13,24 @@
 
 	async function loadDashboard() {
 		try {
-			const [photosRes, collections] = await Promise.all([
-				api.getPhotos(undefined, 6),
-				api.getCollections()
+			const [adminStats, photosRes] = await Promise.all([
+				api.getAdminStats(),
+				api.getPhotos(undefined, 6)
 			]);
+			stats = adminStats;
 			recentPhotos = photosRes.data;
-			photoCount = photosRes.data.length;
-			collectionCount = collections.length;
 		} catch (e) {
 			console.error('Failed to load dashboard:', e);
 		} finally {
 			loading = false;
 		}
+	}
+
+	function formatBytes(bytes: number): string {
+		if (bytes < 1024) return `${bytes} B`;
+		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+		if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+		return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
 	}
 </script>
 
@@ -32,21 +38,23 @@
 
 {#if loading}
 	<div class="text-text-muted">Loading...</div>
-{:else}
-	<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+{:else if stats}
+	<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 		<div class="bg-surface border border-border rounded-lg p-6">
-			<div class="text-3xl font-mono font-medium">{photoCount}</div>
+			<div class="text-3xl font-mono font-medium">{stats.roll_count}</div>
+			<div class="text-sm text-text-muted mt-1">Rolls</div>
+		</div>
+		<div class="bg-surface border border-border rounded-lg p-6">
+			<div class="text-3xl font-mono font-medium">{stats.photo_count}</div>
 			<div class="text-sm text-text-muted mt-1">Photos</div>
 		</div>
 		<div class="bg-surface border border-border rounded-lg p-6">
-			<div class="text-3xl font-mono font-medium">{collectionCount}</div>
+			<div class="text-3xl font-mono font-medium">{stats.collection_count}</div>
 			<div class="text-sm text-text-muted mt-1">Collections</div>
 		</div>
 		<div class="bg-surface border border-border rounded-lg p-6">
-			<div class="text-3xl font-mono font-medium">
-				{(recentPhotos.reduce((sum, p) => sum + p.file_size, 0) / 1024 / 1024).toFixed(1)} MB
-			</div>
-			<div class="text-sm text-text-muted mt-1">Storage (visible)</div>
+			<div class="text-3xl font-mono font-medium">{formatBytes(stats.storage_bytes)}</div>
+			<div class="text-sm text-text-muted mt-1">Storage</div>
 		</div>
 	</div>
 
