@@ -18,7 +18,7 @@
 {:else}
 	<div class="flex h-screen overflow-hidden">
 		<Sidebar />
-		<main class="flex-1 p-8 overflow-y-auto">
+		<main class="flex-1 p-8 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 			{@render children()}
 		</main>
 	</div>

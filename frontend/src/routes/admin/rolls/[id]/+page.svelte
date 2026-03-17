@@ -393,9 +393,9 @@
 
 		<!-- Content area: sidebar + photos -->
 		<div class="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 pt-6">
-			<!-- Left sidebar - metadata (scrolls independently) -->
-			<div class="w-full lg:w-[280px] flex-shrink-0 lg:overflow-y-auto lg:max-h-[calc(100vh-140px)]">
-				<div class="bg-surface border border-border rounded-lg p-5 space-y-4 lg:sticky lg:top-0">
+			<!-- Left sidebar - metadata -->
+			<div class="w-full lg:w-[280px] flex-shrink-0">
+				<div class="bg-surface border border-border rounded-lg p-5 space-y-4">
 					<h2 class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Metadata</h2>
 
 					<div>
@@ -490,135 +490,107 @@
 					</div>
 				</div>
 
-				<!-- Photo editor (sticky card) -->
+			</div>
+
+			<!-- Right area - photos -->
+			<div class="flex-1 min-w-0">
+				<!-- Upload zone -->
+				<UploadQueue rollId={roll.id} onuploaded={handleUploaded} />
+
+				<!-- Photo editor (landscape card above gallery) -->
 				{#if selectedPhoto}
-					<div class="mt-4 bg-surface border border-border rounded-lg p-5 lg:sticky lg:top-[calc(100%+16px)]">
-						<div class="space-y-4">
-							<!-- Preview -->
-							<div>
+					<div class="mt-4 bg-surface border border-border rounded-lg p-5">
+						<div class="flex gap-5">
+							<!-- Preview (left) -->
+							<div class="w-[240px] flex-shrink-0">
 								<img
 									src={selectedPhoto.urls.medium || selectedPhoto.urls.thumb}
 									alt={selectedPhoto.title || ''}
 									class="w-full rounded object-contain"
 									style:aspect-ratio="{selectedPhoto.width} / {selectedPhoto.height}"
 								/>
+								<div class="flex items-center gap-2 mt-3">
+									<button
+										onclick={togglePhotoHidden}
+										class="px-3 py-1 rounded-md text-xs border transition-colors
+											{photoHidden ? 'border-error/30 text-error/70' : 'border-success/30 text-success'}"
+									>
+										{photoHidden ? 'Hidden' : 'Visible'}
+									</button>
+									<button
+										onclick={setAsCover}
+										disabled={selectedPhoto.id === roll.cover_photo_id}
+										class="px-3 py-1 rounded-md text-xs border border-yellow-500/30 text-yellow-400 hover:border-yellow-500/60 transition-colors disabled:opacity-30 disabled:cursor-default"
+									>
+										{selectedPhoto.id === roll.cover_photo_id ? 'Current Cover' : 'Set as Cover'}
+									</button>
+								</div>
 							</div>
 
-							<!-- Fields -->
-							<div class="space-y-3">
-								<div>
-									<label for="photo-title" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Title</label>
-									<input
-										id="photo-title"
-										bind:value={photoTitle}
-										placeholder="Optional title"
-										class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
-									/>
-								</div>
-
-								<div>
-									<label for="photo-desc" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Description</label>
-									<textarea
-										id="photo-desc"
-										bind:value={photoDescription}
-										rows="2"
-										class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent resize-none placeholder:text-text-muted/40"
-									></textarea>
+							<!-- Fields (right) -->
+							<div class="flex-1 min-w-0 space-y-3">
+								<div class="grid grid-cols-2 gap-3">
+									<div>
+										<label for="photo-title" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Title</label>
+										<input id="photo-title" bind:value={photoTitle} placeholder="Optional title"
+											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
+									</div>
+									<div>
+										<label for="photo-desc" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Description</label>
+										<input id="photo-desc" bind:value={photoDescription} placeholder="Description"
+											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
+									</div>
 								</div>
 
 								<div class="grid grid-cols-2 gap-3">
 									<div>
 										<label for="photo-camera" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Camera</label>
-										<input
-											id="photo-camera"
-											bind:value={photoCamera}
-											placeholder={camera || 'Camera'}
-											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
-										/>
+										<input id="photo-camera" bind:value={photoCamera} placeholder={camera || 'Camera'}
+											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
 									</div>
 									<div>
 										<label for="photo-film" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Film Stock</label>
-										<input
-											id="photo-film"
-											bind:value={photoFilmStock}
-											placeholder={filmStock || 'Film Stock'}
-											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
-										/>
+										<input id="photo-film" bind:value={photoFilmStock} placeholder={filmStock || 'Film Stock'}
+											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
 									</div>
+								</div>
+
+								<div class="grid grid-cols-3 gap-3">
 									<div>
 										<label for="photo-lens" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Lens</label>
-										<input
-											id="photo-lens"
-											bind:value={photoLens}
-											placeholder={lens || 'Lens'}
-											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
-										/>
+										<input id="photo-lens" bind:value={photoLens} placeholder={lens || 'Lens'}
+											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
 									</div>
 									<div>
 										<label for="photo-location" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Location</label>
-										<input
-											id="photo-location"
-											bind:value={photoLocation}
-											placeholder={location || 'Location'}
-											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
-										/>
+										<input id="photo-location" bind:value={photoLocation} placeholder={location || 'Location'}
+											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
+									</div>
+									<div>
+										<label for="photo-date" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Date Taken</label>
+										<input id="photo-date" type="date" bind:value={photoTakenAt}
+											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent" />
 									</div>
 								</div>
 
-								<div>
-									<label for="photo-date" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Date Taken</label>
-									<input
-										id="photo-date"
-										type="date"
-										bind:value={photoTakenAt}
-										class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent"
-									/>
-								</div>
-
-								<div class="flex items-center gap-4 pt-2">
-									<button
-										onclick={togglePhotoHidden}
-										class="px-3 py-1.5 rounded-md text-xs border transition-colors
-											{photoHidden ? 'border-error/30 text-error/70' : 'border-success/30 text-success'}"
-									>
-										{photoHidden ? 'Hidden' : 'Visible'}
-									</button>
-
-									<button
-										onclick={setAsCover}
-										disabled={selectedPhoto.id === roll.cover_photo_id}
-										class="px-3 py-1.5 rounded-md text-xs border border-amber-500/30 text-amber-400 hover:border-amber-500/60 transition-colors disabled:opacity-30 disabled:cursor-default"
-									>
-										{selectedPhoto.id === roll.cover_photo_id ? 'Current Cover' : 'Set as Cover'}
-									</button>
-								</div>
-
-								<div class="flex items-center gap-3 pt-3 border-t border-border">
-									<button
-										onclick={savePhoto}
-										disabled={savingPhoto}
-										class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50"
-									>
+								<div class="flex items-center gap-3 pt-2 border-t border-border">
+									<button onclick={savePhoto} disabled={savingPhoto}
+										class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50">
 										{savingPhoto ? 'Saving...' : 'Save Photo'}
 									</button>
-									<button
-										onclick={requestDeletePhoto}
-										disabled={deletingPhoto}
-										class="px-3 py-1.5 text-error/60 hover:text-error text-sm transition-colors disabled:opacity-50"
-									>
-										{deletingPhoto ? 'Deleting...' : 'Delete Photo'}
+									<button onclick={requestDeletePhoto} disabled={deletingPhoto}
+										class="px-3 py-1.5 text-error/60 hover:text-error text-sm transition-colors disabled:opacity-50">
+										Delete Photo
+									</button>
+									<button onclick={() => selectedPhotoId = null}
+										class="ml-auto px-3 py-1.5 text-text-muted hover:text-text text-sm transition-colors">
+										Close
 									</button>
 								</div>
 							</div>
 						</div>
 					</div>
 				{/if}
-			</div>
-
-			<!-- Right area - photos (scrolls independently on lg) -->
-			<div class="flex-1 min-w-0 lg:overflow-y-auto lg:max-h-[calc(100vh-140px)]">
-				<!-- Upload zone -->
-				<UploadQueue rollId={roll.id} onuploaded={handleUploaded} />
 
 				<!-- Photo grid -->
 				<div class="mt-6">
@@ -674,9 +646,10 @@
 													<!-- Set as cover -->
 													<button
 														onclick={(e) => setAsCoverInline(photo, e)}
-														title="Set as cover"
-														class="w-7 h-7 rounded bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-sm transition-colors
-															{photo.id === roll.cover_photo_id ? 'text-amber-400' : ''}"
+														disabled={photo.id === roll.cover_photo_id}
+														title={photo.id === roll.cover_photo_id ? 'Current cover' : 'Set as cover'}
+														class="w-7 h-7 rounded bg-black/60 flex items-center justify-center text-sm transition-colors
+															{photo.id === roll.cover_photo_id ? 'text-yellow-400 cursor-default' : 'hover:bg-black/80 text-white'}"
 													>
 														<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
 															<path fill-rule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z" clip-rule="evenodd" />

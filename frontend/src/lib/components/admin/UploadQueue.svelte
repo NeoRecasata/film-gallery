@@ -26,6 +26,20 @@
 	const failedCount = $derived(items.filter(i => i.status === 'failed').length);
 	const isComplete = $derived(hasItems && activeCount === 0);
 
+	// Auto-clear completed uploads after 60 seconds
+	let autoClearTimer: ReturnType<typeof setTimeout> | null = null;
+
+	$effect(() => {
+		if (isComplete && doneCount > 0 && failedCount === 0) {
+			autoClearTimer = setTimeout(() => {
+				items = items.filter(i => i.status !== 'done');
+			}, 60000);
+		}
+		return () => {
+			if (autoClearTimer) clearTimeout(autoClearTimer);
+		};
+	});
+
 	const headerText = $derived.by(() => {
 		if (!hasItems) return '';
 		if (activeCount > 0) return `Uploading ${activeCount} file${activeCount !== 1 ? 's' : ''}...`;
@@ -175,7 +189,7 @@
 
 		<!-- File list -->
 		{#if !collapsed}
-			<div class="max-h-[260px] overflow-y-auto divide-y divide-border">
+			<div class="max-h-[260px] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden divide-y divide-border">
 				{#each items as item}
 					<div class="flex items-center gap-3 px-4 py-2.5">
 						{#if item.photo?.urls.thumb}
