@@ -497,101 +497,6 @@
 				<!-- Upload zone -->
 				<UploadQueue rollId={roll.id} onuploaded={handleUploaded} />
 
-				<!-- Photo editor (landscape card above gallery) -->
-				{#if selectedPhoto}
-					<div class="mt-4 bg-surface border border-border rounded-lg p-5">
-						<div class="flex gap-5">
-							<!-- Preview (left) -->
-							<div class="w-[240px] flex-shrink-0">
-								<img
-									src={selectedPhoto.urls.medium || selectedPhoto.urls.thumb}
-									alt={selectedPhoto.title || ''}
-									class="w-full rounded object-contain"
-									style:aspect-ratio="{selectedPhoto.width} / {selectedPhoto.height}"
-								/>
-								<div class="flex items-center gap-2 mt-3">
-									<button
-										onclick={togglePhotoHidden}
-										class="px-3 py-1 rounded-md text-xs border transition-colors
-											{photoHidden ? 'border-error/30 text-error/70' : 'border-success/30 text-success'}"
-									>
-										{photoHidden ? 'Hidden' : 'Visible'}
-									</button>
-									<button
-										onclick={setAsCover}
-										disabled={selectedPhoto.id === roll.cover_photo_id}
-										class="px-3 py-1 rounded-md text-xs border border-yellow-500/30 text-yellow-400 hover:border-yellow-500/60 transition-colors disabled:opacity-30 disabled:cursor-default"
-									>
-										{selectedPhoto.id === roll.cover_photo_id ? 'Current Cover' : 'Set as Cover'}
-									</button>
-								</div>
-							</div>
-
-							<!-- Fields (right) -->
-							<div class="flex-1 min-w-0 space-y-3">
-								<div class="grid grid-cols-2 gap-3">
-									<div>
-										<label for="photo-title" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Title</label>
-										<input id="photo-title" bind:value={photoTitle} placeholder="Optional title"
-											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
-									</div>
-									<div>
-										<label for="photo-desc" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Description</label>
-										<input id="photo-desc" bind:value={photoDescription} placeholder="Description"
-											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
-									</div>
-								</div>
-
-								<div class="grid grid-cols-2 gap-3">
-									<div>
-										<label for="photo-camera" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Camera</label>
-										<input id="photo-camera" bind:value={photoCamera} placeholder={camera || 'Camera'}
-											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
-									</div>
-									<div>
-										<label for="photo-film" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Film Stock</label>
-										<input id="photo-film" bind:value={photoFilmStock} placeholder={filmStock || 'Film Stock'}
-											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
-									</div>
-								</div>
-
-								<div class="grid grid-cols-3 gap-3">
-									<div>
-										<label for="photo-lens" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Lens</label>
-										<input id="photo-lens" bind:value={photoLens} placeholder={lens || 'Lens'}
-											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
-									</div>
-									<div>
-										<label for="photo-location" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Location</label>
-										<input id="photo-location" bind:value={photoLocation} placeholder={location || 'Location'}
-											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
-									</div>
-									<div>
-										<label for="photo-date" class="block text-[11px] uppercase tracking-wide text-text-muted mb-1">Date Taken</label>
-										<input id="photo-date" type="date" bind:value={photoTakenAt}
-											class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent" />
-									</div>
-								</div>
-
-								<div class="flex items-center gap-3 pt-2 border-t border-border">
-									<button onclick={savePhoto} disabled={savingPhoto}
-										class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50">
-										{savingPhoto ? 'Saving...' : 'Save Photo'}
-									</button>
-									<button onclick={requestDeletePhoto} disabled={deletingPhoto}
-										class="px-3 py-1.5 text-error/60 hover:text-error text-sm transition-colors disabled:opacity-50">
-										Delete Photo
-									</button>
-									<button onclick={() => selectedPhotoId = null}
-										class="ml-auto px-3 py-1.5 text-text-muted hover:text-text text-sm transition-colors">
-										Close
-									</button>
-								</div>
-							</div>
-						</div>
-					</div>
-				{/if}
-
 				<!-- Photo grid -->
 				<div class="mt-6">
 					<h2 class="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-3">
@@ -686,6 +591,95 @@
 							{/each}
 						</div>
 					{/if}
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Floating photo editor - fixed to bottom -->
+{#if selectedPhoto && roll}
+	<div class="fixed bottom-0 left-56 right-0 z-50 bg-surface border-t border-border shadow-[0_-4px_24px_rgba(0,0,0,0.4)]">
+		<div class="flex gap-5 p-4 max-w-full">
+			<!-- Preview (left) -->
+			<div class="w-[160px] flex-shrink-0">
+				<img
+					src={selectedPhoto.urls.medium || selectedPhoto.urls.thumb}
+					alt={selectedPhoto.title || ''}
+					class="w-full rounded object-contain max-h-[140px]"
+				/>
+				<div class="flex items-center gap-2 mt-2">
+					<button
+						onclick={togglePhotoHidden}
+						class="px-2 py-0.5 rounded text-[11px] border transition-colors
+							{photoHidden ? 'border-error/30 text-error/70' : 'border-success/30 text-success'}"
+					>
+						{photoHidden ? 'Hidden' : 'Visible'}
+					</button>
+					<button
+						onclick={setAsCover}
+						disabled={selectedPhoto.id === roll.cover_photo_id}
+						class="px-2 py-0.5 rounded text-[11px] border border-yellow-500/30 text-yellow-400 hover:border-yellow-500/60 transition-colors disabled:opacity-30 disabled:cursor-default"
+					>
+						{selectedPhoto.id === roll.cover_photo_id ? 'Cover' : 'Set Cover'}
+					</button>
+				</div>
+			</div>
+
+			<!-- Fields -->
+			<div class="flex-1 min-w-0 space-y-2">
+				<div class="grid grid-cols-4 gap-2">
+					<div>
+						<label for="photo-title" class="block text-[10px] uppercase tracking-wide text-text-muted mb-0.5">Title</label>
+						<input id="photo-title" bind:value={photoTitle} placeholder="Optional title"
+							class="w-full px-2 py-1.5 bg-bg border border-border rounded text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
+					</div>
+					<div>
+						<label for="photo-camera" class="block text-[10px] uppercase tracking-wide text-text-muted mb-0.5">Camera</label>
+						<input id="photo-camera" bind:value={photoCamera} placeholder={camera || 'Camera'}
+							class="w-full px-2 py-1.5 bg-bg border border-border rounded text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
+					</div>
+					<div>
+						<label for="photo-film" class="block text-[10px] uppercase tracking-wide text-text-muted mb-0.5">Film Stock</label>
+						<input id="photo-film" bind:value={photoFilmStock} placeholder={filmStock || 'Film Stock'}
+							class="w-full px-2 py-1.5 bg-bg border border-border rounded text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
+					</div>
+					<div>
+						<label for="photo-lens" class="block text-[10px] uppercase tracking-wide text-text-muted mb-0.5">Lens</label>
+						<input id="photo-lens" bind:value={photoLens} placeholder={lens || 'Lens'}
+							class="w-full px-2 py-1.5 bg-bg border border-border rounded text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
+					</div>
+				</div>
+				<div class="grid grid-cols-4 gap-2">
+					<div>
+						<label for="photo-desc" class="block text-[10px] uppercase tracking-wide text-text-muted mb-0.5">Description</label>
+						<input id="photo-desc" bind:value={photoDescription} placeholder="Description"
+							class="w-full px-2 py-1.5 bg-bg border border-border rounded text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
+					</div>
+					<div>
+						<label for="photo-location" class="block text-[10px] uppercase tracking-wide text-text-muted mb-0.5">Location</label>
+						<input id="photo-location" bind:value={photoLocation} placeholder={location || 'Location'}
+							class="w-full px-2 py-1.5 bg-bg border border-border rounded text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40" />
+					</div>
+					<div>
+						<label for="photo-date" class="block text-[10px] uppercase tracking-wide text-text-muted mb-0.5">Date Taken</label>
+						<input id="photo-date" type="date" bind:value={photoTakenAt}
+							class="w-full px-2 py-1.5 bg-bg border border-border rounded text-sm focus:outline-none focus:border-accent" />
+					</div>
+					<div class="flex items-end gap-2">
+						<button onclick={savePhoto} disabled={savingPhoto}
+							class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-sm font-medium transition-colors disabled:opacity-50">
+							{savingPhoto ? 'Saving...' : 'Save'}
+						</button>
+						<button onclick={requestDeletePhoto} disabled={deletingPhoto}
+							class="px-2 py-1.5 text-error/60 hover:text-error text-sm transition-colors disabled:opacity-50">
+							Delete
+						</button>
+						<button onclick={() => selectedPhotoId = null}
+							class="px-2 py-1.5 text-text-muted hover:text-text text-sm transition-colors ml-auto">
+							&times;
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
