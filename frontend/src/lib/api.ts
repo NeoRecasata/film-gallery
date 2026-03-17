@@ -1,4 +1,4 @@
-import type { Photo, PhotosResponse, Collection, SiteSettings, ApiError } from './types';
+import type { Photo, PhotosResponse, Collection, SiteSettings, ApiError, Roll, AdminStats, UploadResult } from './types';
 
 let accessToken: string | null = null;
 
@@ -136,17 +136,6 @@ class ApiClient {
 		return this.request('/api/admin/photos');
 	}
 
-	async uploadPhoto(file: File, metadata?: Record<string, string>): Promise<Photo> {
-		const form = new FormData();
-		form.append('photo', file);
-		if (metadata) {
-			for (const [key, value] of Object.entries(metadata)) {
-				if (value) form.append(key, value);
-			}
-		}
-		return this.request('/api/admin/photos', { method: 'POST', body: form });
-	}
-
 	async updatePhoto(id: string, data: Partial<Photo>): Promise<Photo> {
 		return this.request(`/api/admin/photos/${id}`, {
 			method: 'PATCH',
@@ -158,11 +147,51 @@ class ApiClient {
 		await this.request(`/api/admin/photos/${id}`, { method: 'DELETE' });
 	}
 
-	async reorderPhotos(orders: { id: string; sort_order: number }[]): Promise<void> {
-		await this.request('/api/admin/photos/reorder', {
-			method: 'POST',
-			body: JSON.stringify({ orders })
-		});
+	// Admin - Rolls
+	async getRolls(): Promise<Roll[]> {
+		return this.request<Roll[]>('/api/admin/rolls');
+	}
+
+	async getRoll(id: string): Promise<Roll> {
+		return this.request<Roll>(`/api/admin/rolls/${id}`);
+	}
+
+	async createRoll(data: { title: string; description?: string; camera?: string; film_stock?: string; lens?: string; location?: string; shot_at?: string }): Promise<Roll> {
+		return this.request<Roll>('/api/admin/rolls', { method: 'POST', body: JSON.stringify(data) });
+	}
+
+	async updateRoll(id: string, data: Record<string, unknown>): Promise<Roll> {
+		return this.request<Roll>(`/api/admin/rolls/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+	}
+
+	async deleteRoll(id: string): Promise<void> {
+		return this.request(`/api/admin/rolls/${id}`, { method: 'DELETE' });
+	}
+
+	async uploadRollPhotos(rollId: string, files: File[]): Promise<UploadResult> {
+		const formData = new FormData();
+		for (const file of files) {
+			formData.append('files', file);
+		}
+		return this.request<UploadResult>(`/api/admin/rolls/${rollId}/photos`, { method: 'POST', body: formData });
+	}
+
+	async reorderRollPhotos(rollId: string, orders: { id: string; sort_order: number }[]): Promise<void> {
+		return this.request(`/api/admin/rolls/${rollId}/photos/reorder`, { method: 'POST', body: JSON.stringify({ orders }) });
+	}
+
+	// Admin Stats
+	async getAdminStats(): Promise<AdminStats> {
+		return this.request<AdminStats>('/api/admin/stats');
+	}
+
+	// Public Rolls
+	async getPublicRolls(): Promise<Roll[]> {
+		return this.request<Roll[]>('/api/rolls');
+	}
+
+	async getPublicRoll(slug: string): Promise<Roll> {
+		return this.request<Roll>(`/api/rolls/${slug}`);
 	}
 
 	// Admin - Collections
