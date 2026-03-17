@@ -518,8 +518,7 @@
 											onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPhoto(photo.id); } }}
 											role="button"
 											tabindex="0"
-											class="block w-full rounded relative group cursor-pointer
-												{selectedPhotoId === photo.id ? 'ring-2 ring-inset ring-amber-500' : ''}"
+											class="block w-full rounded overflow-hidden relative group cursor-pointer"
 										>
 											<img
 												src={photo.urls.thumb}
@@ -575,6 +574,11 @@
 													</button>
 												</div>
 											</div>
+
+											<!-- Selection border overlay -->
+											{#if selectedPhotoId === photo.id}
+												<div class="absolute inset-0 rounded border-2 border-amber-500 pointer-events-none"></div>
+											{/if}
 
 											<!-- Badges -->
 											{#if photo.hidden}
