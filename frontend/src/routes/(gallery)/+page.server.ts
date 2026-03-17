@@ -7,7 +7,7 @@ export const load: PageServerLoad = async () => {
 	const serverApi = createServerApi(apiUrl);
 
 	try {
-		const photosResponse = await serverApi.getPhotos();
+		const photosResponse = await serverApi.getPhotos(undefined, 20, true);
 		return { photosResponse };
 	} catch {
 		return { photosResponse: { data: [], next_cursor: null } };

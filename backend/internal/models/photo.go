@@ -42,6 +42,7 @@ type Photo struct {
 	TakenAt     *time.Time    `json:"taken_at"`
 	RollID      string        `json:"roll_id"`
 	Hidden      bool          `json:"hidden"`
+	Featured    bool          `json:"featured"`
 	OriginalKey string        `json:"-"`
 	Variants    PhotoVariants `json:"-"`
 	Width       int           `json:"width"`

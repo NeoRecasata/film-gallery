@@ -70,6 +70,9 @@
 	let selectedIds = $state<Set<string>>(new Set());
 	let bulkActing = $state(false);
 	const selectedCount = $derived(selectedIds.size);
+	const allSelectedFeatured = $derived(
+		selectedCount > 0 && photos.filter(p => selectedIds.has(p.id)).every(p => p.featured)
+	);
 	const allSelectedHidden = $derived(
 		selectedCount > 0 && photos.filter(p => selectedIds.has(p.id)).every(p => p.hidden)
 	);
@@ -327,6 +330,20 @@
 		}
 	}
 
+	async function toggleFeaturedInline(photo: Photo, e: MouseEvent) {
+		e.stopPropagation();
+		try {
+			const updated = await api.updatePhoto(photo.id, { featured: !photo.featured } as Partial<Photo>);
+			if (roll) {
+				roll = { ...roll, photos: roll.photos?.map(p => p.id === updated.id ? updated : p) };
+			}
+			toasts.success(updated.featured ? 'Photo featured' : 'Photo unfeatured');
+		} catch (e) {
+			console.error('Failed to toggle featured:', e);
+			toasts.error('Failed to update photo');
+		}
+	}
+
 	async function setAsCoverInline(photo: Photo, e: MouseEvent) {
 		e.stopPropagation();
 		if (!roll) return;
@@ -470,6 +487,23 @@
 
 	function selectAll() {
 		selectedIds = new Set(photos.map(p => p.id));
+	}
+
+	async function bulkSetFeatured(featured: boolean) {
+		bulkActing = true;
+		try {
+			await Promise.all(
+				[...selectedIds].map(id => api.updatePhoto(id, { featured } as Partial<Photo>))
+			);
+			await loadRoll();
+			toasts.success(`${selectedIds.size} photo${selectedIds.size !== 1 ? 's' : ''} ${featured ? 'featured' : 'unfeatured'}`);
+			exitSelectMode();
+		} catch (e) {
+			console.error('Bulk feature failed:', e);
+			toasts.error('Failed to update some photos');
+		} finally {
+			bulkActing = false;
+		}
 	}
 
 	async function bulkSetHidden(hidden: boolean) {
@@ -694,6 +728,13 @@
 								<button onclick={() => bulkSetHidden(true)} disabled={bulkActing || selectedCount === 0} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted hover:text-text transition-colors disabled:opacity-50 inline-flex items-center gap-1">
 									<Icon name="eye-slash" class="w-3.5 h-3.5" /> Hide</button>
 							{/if}
+							{#if allSelectedFeatured}
+								<button onclick={() => bulkSetFeatured(false)} disabled={bulkActing || selectedCount === 0} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50 inline-flex items-center gap-1">
+									<Icon name="sparkle" class="w-3.5 h-3.5" /> Unfeature</button>
+							{:else}
+								<button onclick={() => bulkSetFeatured(true)} disabled={bulkActing || selectedCount === 0} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted hover:text-amber-400 transition-colors disabled:opacity-50 inline-flex items-center gap-1">
+									<Icon name="sparkle" class="w-3.5 h-3.5" /> Feature</button>
+							{/if}
 							<button onclick={requestBulkDelete} disabled={bulkActing || selectedCount === 0} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-error/70 hover:text-error transition-colors disabled:opacity-50 inline-flex items-center gap-1">
 								<Icon name="trash" class="w-3.5 h-3.5" /> Delete</button>
 							<button onclick={exitSelectMode} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted transition-colors inline-flex items-center gap-1">
@@ -758,6 +799,9 @@
 											{#if photo.hidden}
 												<span class="absolute top-1 right-1 px-1 py-0.5 bg-error/80 text-white text-[9px] font-semibold uppercase rounded">Hidden</span>
 											{/if}
+											{#if photo.featured}
+												<span class="absolute bottom-1 left-1 px-1 py-0.5 bg-amber-500/80 text-white text-[9px] font-semibold uppercase rounded">Featured</span>
+											{/if}
 											{#if photo.id === roll.cover_photo_id}
 												<span class="absolute bottom-1 right-1 px-1 py-0.5 bg-amber-500/80 text-white text-[9px] font-semibold uppercase rounded">Cover</span>
 											{/if}
@@ -809,6 +853,14 @@
 														<Icon name="star" />
 													</button>
 													<button
+														onclick={(e) => toggleFeaturedInline(photo, e)}
+														title={photo.featured ? 'Unfeature' : 'Feature'}
+														class="w-7 h-7 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-sm transition-colors
+															{photo.featured ? 'text-amber-400' : 'text-white'}"
+													>
+														<Icon name="sparkle" />
+													</button>
+													<button
 														onclick={(e) => requestDeletePhotoInline(photo, e)}
 														title="Delete photo"
 														class="w-7 h-7 rounded bg-black/60 hover:bg-error/80 text-white flex items-center justify-center text-sm transition-colors"
@@ -835,6 +887,11 @@
 											{#if photo.hidden}
 												<span class="absolute top-1 {selecting ? 'left-8' : 'left-1'} px-1 py-0.5 bg-error/80 text-white text-[9px] font-semibold uppercase rounded">
 													Hidden
+												</span>
+											{/if}
+											{#if photo.featured}
+												<span class="absolute bottom-1 left-1 px-1 py-0.5 bg-amber-500/80 text-white text-[9px] font-semibold uppercase rounded">
+													Featured
 												</span>
 											{/if}
 											{#if photo.id === roll.cover_photo_id}

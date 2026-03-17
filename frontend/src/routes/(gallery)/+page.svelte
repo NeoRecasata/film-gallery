@@ -20,7 +20,7 @@
 		if (!cursor || loading) return;
 		loading = true;
 		try {
-			const res = await api.getPhotos(cursor);
+			const res = await api.getPhotos(cursor, 20, true);
 			photos = [...photos, ...res.data];
 			cursor = res.next_cursor;
 		} catch (e) {

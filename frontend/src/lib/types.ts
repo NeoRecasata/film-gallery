@@ -8,6 +8,7 @@ export interface Photo {
 	lens: string | null;
 	taken_at: string | null;
 	hidden: boolean;
+	featured: boolean;
 	roll_id: string;
 	location: string | null;
 	roll_slug?: string;
