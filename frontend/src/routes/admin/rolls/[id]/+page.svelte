@@ -515,8 +515,16 @@
 
 				<!-- Photo grid (only this scrolls) -->
 				<div class="flex-1 overflow-y-auto rounded [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto ? 'pb-[200px]' : ''}">
-					{#if photos.length === 0}
-						<p class="text-text-muted text-sm py-8 text-center">No photos yet. Upload some above.</p>
+					{#if photos.length === 0 && !showUploadZone}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<div
+							class="flex flex-col items-center justify-center h-full border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-text-muted transition-colors"
+							onclick={() => showUploadZone = true}
+						>
+							<p class="text-text-muted text-sm">No photos yet</p>
+							<p class="text-amber-500 text-sm mt-2 font-medium">+ Add Photos</p>
+						</div>
 					{:else}
 						<div class="flex gap-2" bind:clientWidth={gridWidth}>
 							{#each distributed as column}
