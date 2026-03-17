@@ -60,7 +60,8 @@
 	let photoHidden = $state(false);
 	let savingPhoto = $state(false);
 	let deletingPhoto = $state(false);
-	let showUploadZone = $state(false);
+	let showUploadZone = $derived.by(() => showUploadZoneManual ?? photos.length === 0);
+	let showUploadZoneManual = $state<boolean | null>(null);
 
 	// Confirm dialog state
 	let confirmOpen = $state(false);
@@ -497,7 +498,7 @@
 			<div class="flex-1 min-w-0 flex flex-col min-h-0">
 				<!-- Upload zone (stays at top, toggled) -->
 				<div class="flex-shrink-0">
-					<UploadQueue rollId={roll.id} onuploaded={handleUploaded} showDropZone={showUploadZone} onallcomplete={() => showUploadZone = false} />
+					<UploadQueue rollId={roll.id} onuploaded={handleUploaded} showDropZone={showUploadZone} onallcomplete={() => showUploadZoneManual = false} />
 				</div>
 
 				<div class="mt-4 mb-3 flex items-center justify-between flex-shrink-0">
@@ -505,7 +506,7 @@
 						Photos ({photos.length})
 					</h2>
 					<button
-						onclick={() => showUploadZone = !showUploadZone}
+						onclick={() => showUploadZoneManual = showUploadZone ? false : true}
 						class="px-3 py-1 rounded-md text-xs font-medium transition-colors
 							{showUploadZone ? 'bg-surface-hover text-text-muted' : 'bg-amber-600 hover:bg-amber-500 text-white'}"
 					>
@@ -515,16 +516,7 @@
 
 				<!-- Photo grid (only this scrolls) -->
 				<div class="flex-1 overflow-y-auto rounded [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto ? 'pb-[200px]' : ''}">
-					{#if photos.length === 0 && !showUploadZone}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<div
-							class="flex flex-col items-center justify-center h-full border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-text-muted transition-colors"
-							onclick={() => showUploadZone = true}
-						>
-							<p class="text-text-muted text-sm">No photos yet</p>
-							<p class="text-amber-500 text-sm mt-2 font-medium">+ Add Photos</p>
-						</div>
+					{#if photos.length === 0}
 					{:else}
 						<div class="flex gap-2" bind:clientWidth={gridWidth}>
 							{#each distributed as column}
