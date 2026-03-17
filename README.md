@@ -2,6 +2,24 @@
 
 A self-hosted photo gallery built for film photographers. Organize your scans by roll, curate collections, and share your work through a minimal dark-themed gallery.
 
+## Screenshots
+
+**Public gallery** — Masonry grid with dark background, letting the photos speak for themselves.
+
+![Public gallery with masonry grid layout](screenshots/gallery.png)
+
+**Admin dashboard** — Overview of rolls, photos, collections, and storage usage.
+
+![Admin dashboard](screenshots/admin-dashboard.png)
+
+**Roll management** — Organize uploads by roll with shared metadata (camera, film stock, location).
+
+![Rolls view with cover photos and metadata](screenshots/admin-rolls.png)
+
+**Roll detail** — Edit roll metadata and manage individual photos. Per-photo visibility and metadata overrides.
+
+![Roll detail with metadata form and photo grid](screenshots/admin-roll-detail.png)
+
 ## Features
 
 - **Roll-based organization** — Upload photos by roll, just like you shoot. Each roll carries shared metadata (camera, film stock, lens, location, date) that individual photos inherit.
