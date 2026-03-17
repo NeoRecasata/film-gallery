@@ -195,6 +195,10 @@ class ApiClient {
 	}
 
 	// Admin - Collections
+	async getAdminCollection(id: string): Promise<Collection> {
+		return this.request<Collection>(`/api/admin/collections/${id}`);
+	}
+
 	async createCollection(data: { title: string; description?: string }): Promise<Collection> {
 		return this.request('/api/admin/collections', {
 			method: 'POST',

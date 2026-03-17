@@ -12,6 +12,70 @@ import (
 	slugpkg "github.com/NeoRecasata/film-gallery/backend/internal/slug"
 )
 
+func (s *Server) handleGetAdminCollection(w http.ResponseWriter, r *http.Request) {
+	collID := chi.URLParam(r, "id")
+
+	var c models.Collection
+	err := s.DB.QueryRow(`
+		SELECT id, title, slug, description, cover_photo, sort_order, created_at, updated_at
+		FROM collections WHERE id = $1`, collID,
+	).Scan(
+		&c.ID, &c.Title, &c.Slug, &c.Description, &c.CoverPhoto,
+		&c.SortOrder, &c.CreatedAt, &c.UpdatedAt,
+	)
+	if err != nil {
+		Error(w, http.StatusNotFound, "collection not found")
+		return
+	}
+
+	// Load ALL photos in this collection (no visibility filter)
+	rows, err := s.DB.Query(`
+		SELECT p.id, p.title, p.description, p.slug, p.film_stock, p.camera, p.lens,
+			p.location, p.taken_at, p.roll_id, p.hidden, p.variants, p.width, p.height,
+			p.file_size, p.blur_hash, cp.sort_order, p.created_at, p.updated_at,
+			r.title AS roll_title
+		FROM photos p
+		JOIN collection_photos cp ON cp.photo_id = p.id
+		JOIN rolls r ON r.id = p.roll_id
+		WHERE cp.collection_id = $1
+		ORDER BY cp.sort_order ASC`, c.ID)
+	if err != nil {
+		Error(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	defer rows.Close()
+
+	ctx := r.Context()
+	c.Photos = []models.Photo{}
+
+	for rows.Next() {
+		var p models.Photo
+		var variantsJSON []byte
+		err := rows.Scan(
+			&p.ID, &p.Title, &p.Description, &p.Slug,
+			&p.FilmStock, &p.Camera, &p.Lens, &p.Location, &p.TakenAt,
+			&p.RollID, &p.Hidden, &variantsJSON, &p.Width, &p.Height,
+			&p.FileSize, &p.BlurHash, &p.SortOrder, &p.CreatedAt, &p.UpdatedAt,
+			&p.RollTitle,
+		)
+		if err != nil {
+			continue
+		}
+
+		var variants models.PhotoVariants
+		variants.Scan(variantsJSON)
+		p.URLs = make(map[string]string)
+		for name, key := range variants {
+			url, _ := s.Storage.URL(ctx, key)
+			p.URLs[name] = url
+		}
+		c.Photos = append(c.Photos, p)
+	}
+
+	c.PhotoCount = len(c.Photos)
+	JSON(w, http.StatusOK, c)
+}
+
 func (s *Server) handleCreateCollection(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Title       string  `json:"title"`

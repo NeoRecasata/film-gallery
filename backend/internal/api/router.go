@@ -89,6 +89,7 @@ func NewRouter(s *Server) http.Handler {
 
 		// Collections
 		r.Post("/collections", s.handleCreateCollection)
+		r.Get("/collections/{id}", s.handleGetAdminCollection)
 		r.Patch("/collections/{id}", s.handleUpdateCollection)
 		r.Delete("/collections/{id}", s.handleDeleteCollection)
 		r.Put("/collections/{id}/photos", s.handleSetCollectionPhotos)
