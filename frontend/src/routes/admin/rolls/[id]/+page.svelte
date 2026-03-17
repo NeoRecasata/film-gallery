@@ -143,16 +143,30 @@
 		}
 	}
 
-	function storeLastMetadata() {
+	const SUGGESTIONS_KEY = 'film-gallery-metadata-suggestions';
+
+	function loadSuggestions(): Record<string, string[]> {
 		try {
-			localStorage.setItem('film-gallery-last-roll-metadata', JSON.stringify({
-				camera: camera.trim() || null,
-				film_stock: filmStock.trim() || null,
-				lens: lens.trim() || null,
-				location: location.trim() || null
-			}));
+			const stored = localStorage.getItem(SUGGESTIONS_KEY);
+			return stored ? JSON.parse(stored) : { camera: [], film_stock: [], lens: [], location: [] };
+		} catch { return { camera: [], film_stock: [], lens: [], location: [] }; }
+	}
+
+	function storeSuggestions() {
+		try {
+			const suggestions = loadSuggestions();
+			const fields = { camera, film_stock: filmStock, lens, location } as Record<string, string>;
+			for (const [key, value] of Object.entries(fields)) {
+				const trimmed = value.trim();
+				if (trimmed && !suggestions[key]?.includes(trimmed)) {
+					suggestions[key] = [...(suggestions[key] || []), trimmed];
+				}
+			}
+			localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(suggestions));
 		} catch { /* ignore */ }
 	}
+
+	let suggestions = $state(loadSuggestions());
 
 	async function saveRoll() {
 		if (!roll) return;
@@ -171,7 +185,8 @@
 			});
 			roll = { ...roll, ...updated };
 			syncFormFromRoll(roll);
-			storeLastMetadata();
+			storeSuggestions();
+			suggestions = loadSuggestions();
 			toasts.success('Roll saved');
 		} catch (e) {
 			console.error('Failed to save roll:', e);
@@ -434,6 +449,7 @@
 							id="roll-camera"
 							bind:value={camera}
 							placeholder="Camera"
+							list="suggestions-camera"
 							class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
 						/>
 					</div>
@@ -444,6 +460,7 @@
 							id="roll-film"
 							bind:value={filmStock}
 							placeholder="Film Stock"
+							list="suggestions-film_stock"
 							class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
 						/>
 					</div>
@@ -454,6 +471,7 @@
 							id="roll-lens"
 							bind:value={lens}
 							placeholder="Lens"
+							list="suggestions-lens"
 							class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
 						/>
 					</div>
@@ -464,6 +482,7 @@
 							id="roll-location"
 							bind:value={location}
 							placeholder="Location"
+							list="suggestions-location"
 							class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent placeholder:text-text-muted/40"
 						/>
 					</div>
@@ -701,3 +720,16 @@
 		</div>
 	</div>
 {/if}
+
+<datalist id="suggestions-camera">
+	{#each suggestions.camera || [] as val}<option value={val} />{/each}
+</datalist>
+<datalist id="suggestions-film_stock">
+	{#each suggestions.film_stock || [] as val}<option value={val} />{/each}
+</datalist>
+<datalist id="suggestions-lens">
+	{#each suggestions.lens || [] as val}<option value={val} />{/each}
+</datalist>
+<datalist id="suggestions-location">
+	{#each suggestions.location || [] as val}<option value={val} />{/each}
+</datalist>

@@ -21,27 +21,10 @@
 		}
 	}
 
-	function getLastMetadata(): { camera?: string; film_stock?: string; lens?: string; location?: string } {
-		try {
-			const stored = localStorage.getItem('film-gallery-last-roll-metadata');
-			if (stored) {
-				const parsed = JSON.parse(stored);
-				const result: Record<string, string> = {};
-				if (parsed.camera) result.camera = parsed.camera;
-				if (parsed.film_stock) result.film_stock = parsed.film_stock;
-				if (parsed.lens) result.lens = parsed.lens;
-				if (parsed.location) result.location = parsed.location;
-				return result;
-			}
-		} catch { /* ignore */ }
-		return {};
-	}
-
 	async function handleCreate() {
 		creating = true;
 		try {
-			const lastMeta = getLastMetadata();
-			const roll = await api.createRoll({ title: 'Untitled Roll', ...lastMeta });
+			const roll = await api.createRoll({ title: 'Untitled Roll' });
 			goto(`/admin/rolls/${roll.id}`);
 		} catch (e) {
 			console.error('Failed to create roll:', e);
