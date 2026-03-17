@@ -416,7 +416,22 @@
 	function handleConfirm() {
 		if (confirmAction) confirmAction();
 	}
+
+	function handleKeyboardSave(e: KeyboardEvent) {
+		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+			e.preventDefault();
+			if (reordering) {
+				saveReorder();
+			} else if (selectedPhoto) {
+				savePhoto();
+			} else if (isDirty) {
+				saveRoll();
+			}
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleKeyboardSave} />
 
 <ConfirmDialog
 	open={confirmOpen}

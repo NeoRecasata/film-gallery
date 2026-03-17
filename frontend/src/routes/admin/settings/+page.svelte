@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { api } from '$lib/api';
 	import type { SiteSettings, SocialLink } from '$lib/types';
+	import { toasts } from '$lib/stores/toast';
 	import SocialLinksEditor from '$lib/components/admin/SocialLinksEditor.svelte';
 
 	let loading = $state(true);
@@ -29,6 +30,7 @@
 			socialLinks = settings.social_links || [];
 		} catch (e) {
 			console.error('Failed to load settings:', e);
+			toasts.error('Failed to load settings');
 		} finally {
 			loading = false;
 		}
@@ -50,6 +52,7 @@
 			setTimeout(() => saved = false, 3000);
 		} catch (e) {
 			console.error('Failed to save settings:', e);
+			toasts.error('Failed to save settings');
 		} finally {
 			saving = false;
 		}

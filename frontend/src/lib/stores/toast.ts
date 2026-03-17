@@ -28,7 +28,7 @@ function createToastStore() {
 	return {
 		subscribe,
 		success: (message: string) => add(message, 'success'),
-		error: (message: string) => add(message, 'error'),
+		error: (message: string) => add(message, 'error', 5000),
 		dismiss
 	};
 }

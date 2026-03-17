@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fade } from 'svelte/transition';
 	import type { Photo } from '$lib/types';
 
 	let {
@@ -57,6 +58,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
+	transition:fade={{ duration: 150 }}
 	class="fixed inset-0 z-[100] bg-black flex items-center justify-center"
 	role="dialog"
 	aria-modal="true"
