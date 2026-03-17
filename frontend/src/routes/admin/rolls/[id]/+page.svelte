@@ -5,7 +5,7 @@
 	import type { Roll, Photo } from '$lib/types';
 	import UploadZone from '$lib/components/admin/UploadZone.svelte';
 
-	let rollId = $derived(page.params.id);
+	let rollId = $derived(page.params.id as string);
 	let roll = $state<Roll | null>(null);
 	let loading = $state(true);
 	let saving = $state(false);
@@ -312,6 +312,7 @@
 					<button
 						id="roll-published"
 						type="button"
+						aria-label="Toggle published"
 						onclick={() => published = !published}
 						class="relative w-10 h-5 rounded-full transition-colors {published ? 'bg-success' : 'bg-surface-hover'}"
 					>
