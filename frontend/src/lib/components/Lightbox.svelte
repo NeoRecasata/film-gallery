@@ -95,15 +95,7 @@
 		/>
 	{/if}
 
-	<!-- Metadata toggle -->
-	<button
-		class="absolute bottom-4 right-4 z-10 text-white/40 hover:text-white text-sm p-2"
-		onclick={() => showMeta = !showMeta}
-	>
-		{showMeta ? 'Hide info' : 'Info'}
-	</button>
-
-	<!-- Bottom bar: counter + metadata -->
+	<!-- Bottom bar: counter + metadata + info toggle -->
 	<div class="absolute bottom-0 left-0 right-0 z-10">
 		{#if showMeta && photo}
 			<div class="bg-gradient-to-t from-black/80 to-transparent p-6 pt-16">
@@ -119,11 +111,13 @@
 					{#if photo.camera}<span>{photo.camera}</span>{/if}
 					{#if photo.lens}<span>{photo.lens}</span>{/if}
 					{#if photo.location}<span>{photo.location}</span>{/if}
+					<button class="ml-auto text-white/40 hover:text-white transition-colors" onclick={() => showMeta = false}>Hide info</button>
 				</div>
 			</div>
 		{:else}
-			<div class="p-4">
+			<div class="flex items-center justify-between p-4">
 				<span class="text-white/30 text-sm">{index + 1} / {photos.length}</span>
+				<button class="text-white/40 hover:text-white text-sm transition-colors" onclick={() => showMeta = true}>Info</button>
 			</div>
 		{/if}
 	</div>
