@@ -5,6 +5,7 @@
 	import type { Collection, Photo } from '$lib/types';
 	import { toasts } from '$lib/stores/toast';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 
 	let collectionId = $derived(page.params.id as string);
 	let collection = $state<Collection | null>(null);
@@ -498,19 +499,14 @@
 														class="w-7 h-7 rounded bg-black/60 flex items-center justify-center text-sm transition-colors
 															{photo.id === collection.cover_photo ? 'text-yellow-400 cursor-default' : 'hover:bg-black/80 text-white'}"
 													>
-														<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-															<path fill-rule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z" clip-rule="evenodd" />
-														</svg>
+														<Icon name="star" />
 													</button>
-													<!-- Remove from collection -->
 													<button
 														onclick={(e) => removePhoto(photo, e)}
 														title="Remove from collection"
 														class="w-7 h-7 rounded bg-black/60 hover:bg-error/80 text-white flex items-center justify-center text-sm transition-colors"
 													>
-														<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-															<path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-														</svg>
+														<Icon name="x" />
 													</button>
 												</div>
 											</div>
