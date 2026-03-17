@@ -136,6 +136,7 @@
 			const data = await api.getRoll(rollId);
 			roll = data;
 			syncFormFromRoll(data);
+			loadSuggestions();
 		} catch (e) {
 			console.error('Failed to load roll:', e);
 			toasts.error('Failed to load roll');
@@ -144,30 +145,22 @@
 		}
 	}
 
-	const SUGGESTIONS_KEY = 'film-gallery-metadata-suggestions';
+	let suggestions = $state<Record<string, string[]>>({ camera: [], film_stock: [], lens: [], location: [] });
 
-	function loadSuggestions(): Record<string, string[]> {
+	async function loadSuggestions() {
 		try {
-			const stored = localStorage.getItem(SUGGESTIONS_KEY);
-			return stored ? JSON.parse(stored) : { camera: [], film_stock: [], lens: [], location: [] };
-		} catch { return { camera: [], film_stock: [], lens: [], location: [] }; }
-	}
-
-	function storeSuggestions() {
-		try {
-			const suggestions = loadSuggestions();
-			const fields = { camera, film_stock: filmStock, lens, location } as Record<string, string>;
-			for (const [key, value] of Object.entries(fields)) {
-				const trimmed = value.trim();
-				if (trimmed && !suggestions[key]?.includes(trimmed)) {
-					suggestions[key] = [...(suggestions[key] || []), trimmed];
-				}
+			const allRolls = await api.getRolls();
+			const fields = ['camera', 'film_stock', 'lens', 'location'] as const;
+			const result: Record<string, string[]> = {};
+			for (const field of fields) {
+				const values = allRolls
+					.map(r => r[field])
+					.filter((v): v is string => v != null && v.trim() !== '');
+				result[field] = [...new Set(values)].sort();
 			}
-			localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(suggestions));
+			suggestions = result;
 		} catch { /* ignore */ }
 	}
-
-	let suggestions = $state(loadSuggestions());
 
 	async function saveRoll() {
 		if (!roll) return;
@@ -186,8 +179,7 @@
 			});
 			roll = { ...roll, ...updated };
 			syncFormFromRoll(roll);
-			storeSuggestions();
-			suggestions = loadSuggestions();
+			loadSuggestions();
 			toasts.success('Roll saved');
 		} catch (e) {
 			console.error('Failed to save roll:', e);
