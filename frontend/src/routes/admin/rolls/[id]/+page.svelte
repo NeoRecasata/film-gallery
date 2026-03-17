@@ -97,6 +97,25 @@
 		return cols;
 	});
 
+	const reorderDistributed = $derived.by(() => {
+		const cols: Photo[][] = Array.from({ length: columnCount }, () => []);
+		const heights = new Array(columnCount).fill(0);
+
+		for (const photo of reorderPhotos) {
+			const shortest = heights.indexOf(Math.min(...heights));
+			cols[shortest].push(photo);
+			heights[shortest] += photo.height / photo.width;
+		}
+		return cols;
+	});
+
+	// Flat index lookup for reorder drag operations
+	const reorderIndexOf = $derived.by(() => {
+		const map = new Map<string, number>();
+		reorderPhotos.forEach((p, i) => map.set(p.id, i));
+		return map;
+	});
+
 	$effect(() => {
 		loadRoll();
 	});
@@ -614,28 +633,39 @@
 				<div class="flex-1 overflow-y-auto rounded [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto && !reordering ? 'pb-[200px]' : ''}">
 					{#if photos.length === 0}
 					{:else if reordering}
-						<!-- Flat grid for reorder mode -->
-						<div class="grid grid-cols-4 gap-2">
-							{#each reorderPhotos as photo, index (photo.id)}
-								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<div
-									draggable="true"
-									ondragstart={() => handleDragStart(index)}
-									ondragover={(e) => handleDragOver(e, index)}
-									ondragend={handleDragEnd}
-									class="relative rounded overflow-hidden cursor-grab active:cursor-grabbing
-										{dragIndex === index ? 'opacity-40' : ''}
-										{dragOverIndex === index && dragIndex !== index ? 'ring-2 ring-amber-500' : ''}"
-								>
-									<img
-										src={photo.urls.thumb}
-										alt={photo.title || ''}
-										class="w-full aspect-square object-cover block"
-										draggable="false"
-									/>
-									<span class="absolute top-1 left-1 w-5 h-5 rounded bg-black/60 text-white text-[10px] font-medium flex items-center justify-center">
-										{index + 1}
-									</span>
+						<!-- Masonry grid for reorder mode -->
+						<div class="flex gap-2" bind:clientWidth={gridWidth}>
+							{#each reorderDistributed as column}
+								<div class="flex-1 flex flex-col gap-2">
+									{#each column as photo (photo.id)}
+										{@const flatIndex = reorderIndexOf.get(photo.id) ?? 0}
+										<!-- svelte-ignore a11y_no_static_element_interactions -->
+										<div
+											draggable="true"
+											ondragstart={() => handleDragStart(flatIndex)}
+											ondragover={(e) => handleDragOver(e, flatIndex)}
+											ondragend={handleDragEnd}
+											class="relative rounded overflow-hidden cursor-grab active:cursor-grabbing
+												{dragIndex === flatIndex ? 'opacity-40' : ''}"
+										>
+											<img
+												src={photo.urls.thumb}
+												alt={photo.title || ''}
+												class="w-full h-auto block"
+												style:aspect-ratio="{photo.width} / {photo.height}"
+												draggable="false"
+											/>
+											<span class="absolute top-1 left-1 w-5 h-5 rounded bg-black/60 text-white text-[10px] font-medium flex items-center justify-center">
+												{flatIndex + 1}
+											</span>
+											{#if photo.hidden}
+												<span class="absolute top-1 right-1 px-1 py-0.5 bg-error/80 text-white text-[9px] font-semibold uppercase rounded">Hidden</span>
+											{/if}
+											{#if photo.id === roll.cover_photo_id}
+												<span class="absolute bottom-1 right-1 px-1 py-0.5 bg-amber-500/80 text-white text-[9px] font-semibold uppercase rounded">Cover</span>
+											{/if}
+										</div>
+									{/each}
 								</div>
 							{/each}
 						</div>
@@ -738,7 +768,7 @@
 
 <!-- Floating photo editor - fixed to bottom (hidden during reorder) -->
 {#if selectedPhoto && roll && !reordering}
-	<div class="fixed bottom-4 right-10 z-50 bg-surface border border-border rounded-lg shadow-[0_-4px_24px_rgba(0,0,0,0.4)]" style="left: calc(14rem + 2rem + 280px + 1.5rem + 2rem);">
+	<div class="fixed bottom-4 left-1/2 -translate-x-1/3 z-50 bg-surface border border-border rounded-lg shadow-[0_-4px_24px_rgba(0,0,0,0.4)] w-[min(56rem,calc(100vw-18rem-2rem))]">
 		<div class="flex gap-5 p-4 max-w-full">
 			<!-- Preview (left) -->
 			<div class="w-[160px] flex-shrink-0">

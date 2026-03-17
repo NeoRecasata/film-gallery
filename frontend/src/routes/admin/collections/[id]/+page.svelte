@@ -64,6 +64,23 @@
 		return cols;
 	});
 
+	const reorderDistributed = $derived.by(() => {
+		const cols: Photo[][] = Array.from({ length: columnCount }, () => []);
+		const heights = new Array(columnCount).fill(0);
+		for (const photo of reorderPhotos) {
+			const shortest = heights.indexOf(Math.min(...heights));
+			cols[shortest].push(photo);
+			heights[shortest] += photo.height / photo.width;
+		}
+		return cols;
+	});
+
+	const reorderIndexOf = $derived.by(() => {
+		const map = new Map<string, number>();
+		reorderPhotos.forEach((p, i) => map.set(p.id, i));
+		return map;
+	});
+
 	$effect(() => {
 		loadCollection();
 	});
@@ -427,21 +444,31 @@
 							{/each}
 						</div>
 					{:else if reordering}
-						<!-- Flat grid for reorder -->
-						<div class="grid grid-cols-4 gap-2">
-							{#each reorderPhotos as photo, index (photo.id)}
-								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<div
-									draggable="true"
-									ondragstart={() => handleDragStart(index)}
-									ondragover={(e) => handleDragOver(e, index)}
-									ondragend={handleDragEnd}
-									class="relative rounded overflow-hidden cursor-grab active:cursor-grabbing
-										{dragIndex === index ? 'opacity-40' : ''}
-										{dragOverIndex === index && dragIndex !== index ? 'ring-2 ring-amber-500' : ''}"
-								>
-									<img src={photo.urls.thumb} alt={photo.title || ''} class="w-full aspect-square object-cover block" draggable="false" />
-									<span class="absolute top-1 left-1 w-5 h-5 rounded bg-black/60 text-white text-[10px] font-medium flex items-center justify-center">{index + 1}</span>
+						<!-- Masonry grid for reorder -->
+						<div class="flex gap-2" bind:clientWidth={gridWidth}>
+							{#each reorderDistributed as column}
+								<div class="flex-1 flex flex-col gap-2">
+									{#each column as photo (photo.id)}
+										{@const flatIndex = reorderIndexOf.get(photo.id) ?? 0}
+										<!-- svelte-ignore a11y_no_static_element_interactions -->
+										<div
+											draggable="true"
+											ondragstart={() => handleDragStart(flatIndex)}
+											ondragover={(e) => handleDragOver(e, flatIndex)}
+											ondragend={handleDragEnd}
+											class="relative rounded overflow-hidden cursor-grab active:cursor-grabbing
+												{dragIndex === flatIndex ? 'opacity-40' : ''}"
+										>
+											<img
+												src={photo.urls.thumb}
+												alt={photo.title || ''}
+												class="w-full h-auto block"
+												style:aspect-ratio="{photo.width} / {photo.height}"
+												draggable="false"
+											/>
+											<span class="absolute top-1 left-1 w-5 h-5 rounded bg-black/60 text-white text-[10px] font-medium flex items-center justify-center">{flatIndex + 1}</span>
+										</div>
+									{/each}
 								</div>
 							{/each}
 						</div>
