@@ -11,6 +11,7 @@ import (
 	"github.com/NeoRecasata/film-gallery/backend/internal/auth"
 	"github.com/NeoRecasata/film-gallery/backend/internal/config"
 	"github.com/NeoRecasata/film-gallery/backend/internal/media"
+	"github.com/NeoRecasata/film-gallery/backend/internal/models"
 	"github.com/NeoRecasata/film-gallery/backend/internal/storage"
 )
 
@@ -46,6 +47,9 @@ func NewRouter(s *Server) http.Handler {
 		r.Get("/photos/{slug}", s.handleGetPhoto)
 		r.Get("/collections", s.handleListCollections)
 		r.Get("/collections/{slug}", s.handleGetCollection)
+		r.Get("/rolls", s.handleListPublicRolls)
+		r.Get("/rolls/{slug}", s.handleGetPublicRoll)
+		r.Get("/site", s.handleGetSiteSettings)
 	})
 
 	// Auth routes
@@ -66,13 +70,22 @@ func NewRouter(s *Server) http.Handler {
 	r.Route("/api/admin", func(r chi.Router) {
 		r.Use(auth.RequireAuth(s.JWT))
 
+		// Stats
+		r.Get("/stats", s.handleAdminStats)
+
 		// Photos
 		r.Get("/photos", s.handleAdminListPhotos)
-		r.Post("/photos", s.handleUploadPhoto)
-		r.Get("/photos/{id}", s.handleAdminGetPhoto)
 		r.Patch("/photos/{id}", s.handleUpdatePhoto)
 		r.Delete("/photos/{id}", s.handleDeletePhoto)
-		r.Post("/photos/reorder", s.handleReorderPhotos)
+
+		// Rolls
+		r.Post("/rolls", s.handleCreateRoll)
+		r.Get("/rolls", s.handleListRolls)
+		r.Get("/rolls/{id}", s.handleGetRoll)
+		r.Patch("/rolls/{id}", s.handleUpdateRoll)
+		r.Delete("/rolls/{id}", s.handleDeleteRoll)
+		r.Post("/rolls/{id}/photos", s.handleUploadRollPhotos)
+		r.Post("/rolls/{id}/photos/reorder", s.handleReorderRollPhotos)
 
 		// Collections
 		r.Post("/collections", s.handleCreateCollection)
@@ -106,9 +119,47 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 // --- Admin photo handlers ---
 
 func (s *Server) handleAdminListPhotos(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
-}
+	rows, err := s.DB.Query(`SELECT p.id, p.title, p.description, p.slug, p.film_stock, p.camera, p.lens,
+		p.location, p.taken_at, p.roll_id, p.hidden, p.variants, p.width, p.height,
+		p.file_size, p.blur_hash, p.sort_order, p.created_at, p.updated_at,
+		r.title AS roll_title
+		FROM photos p
+		JOIN rolls r ON r.id = p.roll_id
+		ORDER BY p.created_at DESC`)
+	if err != nil {
+		Error(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	defer rows.Close()
 
-func (s *Server) handleAdminGetPhoto(w http.ResponseWriter, r *http.Request) {
-	Error(w, http.StatusNotImplemented, "not implemented")
+	photos := []models.Photo{}
+	ctx := r.Context()
+
+	for rows.Next() {
+		var p models.Photo
+		var variantsJSON []byte
+		err := rows.Scan(
+			&p.ID, &p.Title, &p.Description, &p.Slug,
+			&p.FilmStock, &p.Camera, &p.Lens, &p.Location, &p.TakenAt,
+			&p.RollID, &p.Hidden, &variantsJSON, &p.Width, &p.Height,
+			&p.FileSize, &p.BlurHash, &p.SortOrder, &p.CreatedAt, &p.UpdatedAt,
+			&p.RollTitle,
+		)
+		if err != nil {
+			Error(w, http.StatusInternalServerError, "failed to scan photo")
+			return
+		}
+
+		var variants models.PhotoVariants
+		variants.Scan(variantsJSON)
+		p.URLs = make(map[string]string)
+		for name, key := range variants {
+			url, _ := s.Storage.URL(ctx, key)
+			p.URLs[name] = url
+		}
+
+		photos = append(photos, p)
+	}
+
+	JSON(w, http.StatusOK, photosResponse{Data: photos})
 }
