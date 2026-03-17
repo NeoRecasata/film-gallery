@@ -499,12 +499,12 @@
 					<UploadQueue rollId={roll.id} onuploaded={handleUploaded} />
 				</div>
 
-				<!-- Photo grid (only this scrolls) -->
-				<div class="mt-4 flex-1 overflow-y-auto rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto ? 'pb-[200px]' : ''}">
-					<h2 class="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-3">
-						Photos ({photos.length})
-					</h2>
+				<h2 class="mt-4 text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-3 flex-shrink-0">
+					Photos ({photos.length})
+				</h2>
 
+				<!-- Photo grid (only this scrolls) -->
+				<div class="flex-1 overflow-y-auto rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto ? 'pb-[200px]' : ''}">
 					{#if photos.length === 0}
 						<p class="text-text-muted text-sm py-8 text-center">No photos yet. Upload some above.</p>
 					{:else}
