@@ -2,7 +2,7 @@
 	import { api } from '$lib/api';
 	import type { Photo } from '$lib/types';
 
-	let { onuploaded }: { onuploaded: (photo: Photo) => void } = $props();
+	let { rollId, onuploaded }: { rollId: string; onuploaded: (photo: Photo) => void } = $props();
 
 	type UploadItem = {
 		file: File;
@@ -60,10 +60,14 @@
 		items = items; // trigger reactivity
 
 		try {
-			const photo = await api.uploadPhoto(item.file);
-			item.status = 'done';
-			item.photo = photo;
-			onuploaded(photo);
+			const result = await api.uploadRollPhotos(rollId, [item.file]);
+			if (result.uploaded.length > 0) {
+				item.status = 'done';
+				item.photo = result.uploaded[0];
+				onuploaded(result.uploaded[0]);
+			} else if (result.failed.length > 0) {
+				throw new Error(result.failed[0].error);
+			}
 		} catch (e) {
 			item.status = 'failed';
 			item.error = e instanceof Error ? e.message : 'Upload failed';

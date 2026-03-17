@@ -39,12 +39,12 @@
 		}
 	}
 
-	async function togglePublished() {
+	async function toggleHidden() {
 		try {
-			const updated = await api.updatePhoto(photo.id, { published: !photo.published } as Partial<Photo>);
+			const updated = await api.updatePhoto(photo.id, { hidden: !photo.hidden } as Partial<Photo>);
 			onupdate(updated);
 		} catch (e) {
-			console.error('Failed to toggle published:', e);
+			console.error('Failed to toggle hidden:', e);
 		}
 	}
 
@@ -97,11 +97,11 @@
 					</div>
 					<div class="flex items-center gap-2">
 						<button
-							onclick={togglePublished}
+							onclick={toggleHidden}
 							class="px-2 py-1 rounded text-xs border transition-colors
-								{photo.published ? 'border-success/30 text-success' : 'border-border text-text-muted'}"
+								{photo.hidden ? 'border-border text-text-muted' : 'border-success/30 text-success'}"
 						>
-							{photo.published ? 'Published' : 'Draft'}
+							{photo.hidden ? 'Hidden' : 'Visible'}
 						</button>
 						<button onclick={() => editing = true} class="text-xs text-text-muted hover:text-text">Edit</button>
 						<button onclick={handleDelete} class="text-xs text-error/60 hover:text-error">Delete</button>

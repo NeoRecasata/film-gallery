@@ -6,11 +6,11 @@
 
 	let photos = $state<Photo[]>([]);
 	let loading = $state(true);
-	let filter = $state<'all' | 'published' | 'draft'>('all');
+	let filter = $state<'all' | 'visible' | 'hidden'>('all');
 
 	const filtered = $derived.by(() => {
-		if (filter === 'published') return photos.filter(p => p.published);
-		if (filter === 'draft') return photos.filter(p => !p.published);
+		if (filter === 'visible') return photos.filter(p => !p.hidden);
+		if (filter === 'hidden') return photos.filter(p => p.hidden);
 		return photos;
 	});
 
@@ -46,13 +46,13 @@
 <div class="max-w-4xl">
 	<h1 class="text-2xl font-medium mb-6">Photos</h1>
 
-	<UploadZone onuploaded={handleUploaded} />
+	<UploadZone rollId="" onuploaded={handleUploaded} />
 
 	<div class="mt-8">
 		<div class="flex items-center gap-4 mb-4">
 			<h2 class="text-lg font-medium">Library</h2>
 			<div class="flex gap-1 text-sm">
-				{#each ['all', 'published', 'draft'] as f}
+				{#each ['all', 'visible', 'hidden'] as f}
 					<button
 						onclick={() => filter = f as typeof filter}
 						class="px-3 py-1 rounded transition-colors
