@@ -71,5 +71,15 @@
 				</div>
 			{/each}
 		</div>
+	{:else if stats.roll_count === 0}
+		<div class="text-center py-16 bg-surface border border-border rounded-lg">
+			<p class="text-text-muted mb-4">No rolls yet. Start by creating your first roll.</p>
+			<a
+				href="/admin/rolls"
+				class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-md text-sm font-medium transition-colors inline-block"
+			>
+				Go to Rolls
+			</a>
+		</div>
 	{/if}
 {/if}

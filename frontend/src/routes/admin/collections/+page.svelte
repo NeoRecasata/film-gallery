@@ -85,7 +85,16 @@
 	{#if loading}
 		<p class="text-text-muted">Loading...</p>
 	{:else if collections.length === 0}
-		<p class="text-text-muted py-12 text-center">No collections yet. Create one to get started.</p>
+		<div class="text-center py-16 bg-surface border border-border rounded-lg">
+			<p class="text-text-muted mb-4">No collections yet. Create one to get started.</p>
+			<button
+				onclick={handleCreate}
+				disabled={creating}
+				class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+			>
+				{creating ? 'Creating...' : '+ New Collection'}
+			</button>
+		</div>
 	{:else}
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 			{#each collections as coll (coll.id)}
