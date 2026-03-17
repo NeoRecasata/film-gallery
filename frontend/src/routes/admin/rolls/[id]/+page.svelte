@@ -518,8 +518,8 @@
 											onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPhoto(photo.id); } }}
 											role="button"
 											tabindex="0"
-											class="block w-full rounded overflow-hidden relative group cursor-pointer
-												{selectedPhotoId === photo.id ? 'ring-2 ring-inset ring-amber-500' : ''}"
+											class="block w-full rounded overflow-hidden relative group cursor-pointer border-2
+												{selectedPhotoId === photo.id ? 'border-amber-500' : 'border-transparent'}"
 										>
 											<img
 												src={photo.urls.thumb}
