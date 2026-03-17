@@ -64,6 +64,13 @@
 	let showUploadZone = $derived.by(() => showUploadZoneManual ?? photos.length === 0);
 	let showUploadZoneManual = $state<boolean | null>(null);
 
+	// Reorder state
+	let reordering = $state(false);
+	let reorderPhotos = $state<Photo[]>([]);
+	let savingReorder = $state(false);
+	let dragIndex = $state<number | null>(null);
+	let dragOverIndex = $state<number | null>(null);
+
 	// Confirm dialog state
 	let confirmOpen = $state(false);
 	let confirmTitle = $state('');
@@ -349,6 +356,58 @@
 		}
 	}
 
+	function enterReorderMode() {
+		reorderPhotos = [...photos];
+		selectedPhotoId = null;
+		reordering = true;
+	}
+
+	function cancelReorder() {
+		reordering = false;
+		reorderPhotos = [];
+		dragIndex = null;
+		dragOverIndex = null;
+	}
+
+	async function saveReorder() {
+		if (!roll) return;
+		savingReorder = true;
+		try {
+			const orders = reorderPhotos.map((p, i) => ({ id: p.id, sort_order: i }));
+			await api.reorderRollPhotos(roll.id, orders);
+			roll = { ...roll, photos: reorderPhotos.map((p, i) => ({ ...p, sort_order: i })) };
+			toasts.success('Photo order saved');
+			reordering = false;
+			reorderPhotos = [];
+		} catch (e) {
+			console.error('Failed to save order:', e);
+			toasts.error('Failed to save photo order');
+		} finally {
+			savingReorder = false;
+		}
+	}
+
+	function handleDragStart(index: number) {
+		dragIndex = index;
+	}
+
+	function handleDragOver(e: DragEvent, index: number) {
+		e.preventDefault();
+		if (dragIndex === null || dragIndex === index) return;
+		// Move the dragged item to the new position
+		const updated = [...reorderPhotos];
+		const [moved] = updated.splice(dragIndex, 1);
+		updated.splice(index, 0, moved);
+		reorderPhotos = updated;
+		dragIndex = index;
+		dragOverIndex = index;
+	}
+
+	function handleDragEnd() {
+		dragIndex = null;
+		dragOverIndex = null;
+	}
+
 	function handleConfirmCancel() {
 		confirmOpen = false;
 		confirmAction = null;
@@ -484,28 +543,83 @@
 
 			<!-- Right area - photos -->
 			<div class="flex-1 min-w-0 flex flex-col min-h-0">
-				<!-- Upload zone (stays at top, toggled) -->
+				<!-- Upload zone (stays at top, toggled, hidden during reorder) -->
+				{#if !reordering}
 				<div class="flex-shrink-0">
 					<UploadQueue rollId={roll.id} onuploaded={handleUploaded} showDropZone={showUploadZone} onallcomplete={() => showUploadZoneManual = false} />
 				</div>
+				{/if}
 
 				<div class="mt-4 mb-3 flex items-center justify-between flex-shrink-0">
 					<h2 class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-						Photos ({photos.length})
+						{reordering ? 'Reorder Photos' : `Photos (${photos.length})`}
 					</h2>
-					<button
-						onclick={() => showUploadZoneManual = showUploadZone ? false : true}
-						class="px-3 py-1 rounded-md text-xs font-medium transition-colors
-							{showUploadZone ? 'bg-surface-hover text-text-muted' : 'bg-amber-600 hover:bg-amber-500 text-white'}"
-					>
-						{showUploadZone ? 'Cancel' : '+ Add Photos'}
-					</button>
+					<div class="flex items-center gap-2">
+						{#if reordering}
+							<button
+								onclick={cancelReorder}
+								class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted transition-colors"
+							>
+								Cancel
+							</button>
+							<button
+								onclick={saveReorder}
+								disabled={savingReorder}
+								class="px-3 py-1 rounded-md text-xs font-medium bg-amber-600 hover:bg-amber-500 text-white transition-colors disabled:opacity-50"
+							>
+								{savingReorder ? 'Saving...' : 'Done'}
+							</button>
+						{:else}
+							{#if photos.length > 1}
+								<button
+									onclick={enterReorderMode}
+									class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted hover:text-text transition-colors"
+								>
+									Reorder
+								</button>
+							{/if}
+							<button
+								onclick={() => showUploadZoneManual = showUploadZone ? false : true}
+								class="px-3 py-1 rounded-md text-xs font-medium transition-colors
+									{showUploadZone ? 'bg-surface-hover text-text-muted' : 'bg-amber-600 hover:bg-amber-500 text-white'}"
+							>
+								{showUploadZone ? 'Cancel' : '+ Add Photos'}
+							</button>
+						{/if}
+					</div>
 				</div>
 
 				<!-- Photo grid (only this scrolls) -->
-				<div class="flex-1 overflow-y-auto rounded [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto ? 'pb-[200px]' : ''}">
+				<div class="flex-1 overflow-y-auto rounded [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto && !reordering ? 'pb-[200px]' : ''}">
 					{#if photos.length === 0}
+					{:else if reordering}
+						<!-- Flat grid for reorder mode -->
+						<div class="grid grid-cols-4 gap-2">
+							{#each reorderPhotos as photo, index (photo.id)}
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<div
+									draggable="true"
+									ondragstart={() => handleDragStart(index)}
+									ondragover={(e) => handleDragOver(e, index)}
+									ondragend={handleDragEnd}
+									class="relative rounded overflow-hidden cursor-grab active:cursor-grabbing
+										{dragIndex === index ? 'opacity-40' : ''}
+										{dragOverIndex === index && dragIndex !== index ? 'ring-2 ring-amber-500' : ''}"
+								>
+									<img
+										src={photo.urls.thumb}
+										alt={photo.title || ''}
+										class="w-full aspect-square object-cover block"
+										draggable="false"
+									/>
+									<span class="absolute top-1 left-1 w-5 h-5 rounded bg-black/60 text-white text-[10px] font-medium flex items-center justify-center">
+										{index + 1}
+									</span>
+								</div>
+							{/each}
+						</div>
 					{:else}
+						<!-- Masonry grid for normal mode -->
 						<div class="flex gap-2" bind:clientWidth={gridWidth}>
 							{#each distributed as column}
 								<div class="flex-1 flex flex-col gap-2">
@@ -601,8 +715,8 @@
 	</div>
 {/if}
 
-<!-- Floating photo editor - fixed to bottom -->
-{#if selectedPhoto && roll}
+<!-- Floating photo editor - fixed to bottom (hidden during reorder) -->
+{#if selectedPhoto && roll && !reordering}
 	<div class="fixed bottom-4 right-10 z-50 bg-surface border border-border rounded-lg shadow-[0_-4px_24px_rgba(0,0,0,0.4)]" style="left: calc(14rem + 2rem + 280px + 1.5rem + 2rem);">
 		<div class="flex gap-5 p-4 max-w-full">
 			<!-- Preview (left) -->
