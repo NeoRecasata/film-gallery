@@ -7,6 +7,7 @@
 	import UploadQueue from '$lib/components/admin/UploadQueue.svelte';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import MetadataSelect from '$lib/components/admin/MetadataSelect.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 
 	let rollId = $derived(page.params.id as string);
 	let roll = $state<Roll | null>(null);
@@ -63,6 +64,12 @@
 	let deletingPhoto = $state(false);
 	let showUploadZone = $derived.by(() => showUploadZoneManual ?? photos.length === 0);
 	let showUploadZoneManual = $state<boolean | null>(null);
+
+	// Bulk select state
+	let selecting = $state(false);
+	let selectedIds = $state<Set<string>>(new Set());
+	let bulkActing = $state(false);
+	const selectedCount = $derived(selectedIds.size);
 
 	// Reorder state
 	let reordering = $state(false);
@@ -433,6 +440,76 @@
 		dragOverIndex = null;
 	}
 
+	// Bulk select functions
+	function enterSelectMode() {
+		selectedPhotoId = null;
+		selectedIds = new Set();
+		selecting = true;
+	}
+
+	function exitSelectMode() {
+		selecting = false;
+		selectedIds = new Set();
+	}
+
+	function toggleSelect(photoId: string) {
+		const next = new Set(selectedIds);
+		if (next.has(photoId)) {
+			next.delete(photoId);
+		} else {
+			next.add(photoId);
+		}
+		selectedIds = next;
+	}
+
+	function selectAll() {
+		selectedIds = new Set(photos.map(p => p.id));
+	}
+
+	async function bulkSetHidden(hidden: boolean) {
+		bulkActing = true;
+		try {
+			await Promise.all(
+				[...selectedIds].map(id => api.updatePhoto(id, { hidden } as Partial<Photo>))
+			);
+			await loadRoll();
+			toasts.success(`${selectedIds.size} photo${selectedIds.size !== 1 ? 's' : ''} ${hidden ? 'hidden' : 'shown'}`);
+			exitSelectMode();
+		} catch (e) {
+			console.error('Bulk update failed:', e);
+			toasts.error('Failed to update some photos');
+		} finally {
+			bulkActing = false;
+		}
+	}
+
+	function requestBulkDelete() {
+		const count = selectedIds.size;
+		confirmTitle = `Delete ${count} Photo${count !== 1 ? 's' : ''}`;
+		confirmMessage = `This will permanently delete ${count} photo${count !== 1 ? 's' : ''}. This action cannot be undone.`;
+		confirmLabel = 'Delete';
+		confirmAction = () => doBulkDelete();
+		confirmOpen = true;
+	}
+
+	async function doBulkDelete() {
+		confirmOpen = false;
+		bulkActing = true;
+		try {
+			await Promise.all(
+				[...selectedIds].map(id => api.deletePhoto(id))
+			);
+			await loadRoll();
+			toasts.success(`${selectedIds.size} photo${selectedIds.size !== 1 ? 's' : ''} deleted`);
+			exitSelectMode();
+		} catch (e) {
+			console.error('Bulk delete failed:', e);
+			toasts.error('Failed to delete some photos');
+		} finally {
+			bulkActing = false;
+		}
+	}
+
 	function handleConfirmCancel() {
 		confirmOpen = false;
 		confirmAction = null;
@@ -583,8 +660,8 @@
 
 			<!-- Right area - photos -->
 			<div class="flex-1 min-w-0 flex flex-col min-h-0">
-				<!-- Upload zone (stays at top, toggled, hidden during reorder) -->
-				{#if !reordering}
+				<!-- Upload zone (stays at top, toggled, hidden during reorder/select) -->
+				{#if !reordering && !selecting}
 				<div class="flex-shrink-0">
 					<UploadQueue rollId={roll.id} onuploaded={handleUploaded} showDropZone={showUploadZone} onallcomplete={() => showUploadZoneManual = false} />
 				</div>
@@ -592,45 +669,56 @@
 
 				<div class="mt-4 mb-3 flex items-center justify-between flex-shrink-0">
 					<h2 class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-						{reordering ? 'Reorder Photos' : `Photos (${photos.length})`}
+						{#if selecting}
+							{selectedCount} selected
+						{:else if reordering}
+							Reorder Photos
+						{:else}
+							Photos ({photos.length})
+						{/if}
 					</h2>
 					<div class="flex items-center gap-2">
-						{#if reordering}
-							<button
-								onclick={cancelReorder}
-								class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted transition-colors"
-							>
-								Cancel
-							</button>
-							<button
-								onclick={saveReorder}
-								disabled={savingReorder}
-								class="px-3 py-1 rounded-md text-xs font-medium bg-amber-600 hover:bg-amber-500 text-white transition-colors disabled:opacity-50"
-							>
-								{savingReorder ? 'Saving...' : 'Done'}
-							</button>
+						{#if selecting}
+							<button onclick={selectAll} disabled={bulkActing} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted hover:text-text transition-colors disabled:opacity-50 inline-flex items-center gap-1">
+								<Icon name="list" class="w-3.5 h-3.5" /> All</button>
+							<button onclick={() => bulkSetHidden(false)} disabled={bulkActing || selectedCount === 0} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-success/70 hover:text-success transition-colors disabled:opacity-50 inline-flex items-center gap-1">
+								<Icon name="eye" class="w-3.5 h-3.5" /> Show</button>
+							<button onclick={() => bulkSetHidden(true)} disabled={bulkActing || selectedCount === 0} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted hover:text-text transition-colors disabled:opacity-50 inline-flex items-center gap-1">
+								<Icon name="eye-slash" class="w-3.5 h-3.5" /> Hide</button>
+							<button onclick={requestBulkDelete} disabled={bulkActing || selectedCount === 0} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-error/70 hover:text-error transition-colors disabled:opacity-50 inline-flex items-center gap-1">
+								<Icon name="trash" class="w-3.5 h-3.5" /> Delete</button>
+							<button onclick={exitSelectMode} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted transition-colors inline-flex items-center gap-1">
+								<Icon name="check" class="w-3.5 h-3.5" /> Done</button>
+						{:else if reordering}
+							<button onclick={cancelReorder} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted transition-colors">Cancel</button>
+							<button onclick={saveReorder} disabled={savingReorder} class="px-3 py-1 rounded-md text-xs font-medium bg-amber-600 hover:bg-amber-500 text-white transition-colors disabled:opacity-50">
+								{savingReorder ? 'Saving...' : 'Done'}</button>
 						{:else}
+							{#if photos.length > 0}
+								<button onclick={enterSelectMode} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted hover:text-text transition-colors inline-flex items-center gap-1">
+									<Icon name="check" class="w-3.5 h-3.5" /> Select</button>
+							{/if}
 							{#if photos.length > 1}
-								<button
-									onclick={enterReorderMode}
-									class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted hover:text-text transition-colors"
-								>
-									Reorder
-								</button>
+								<button onclick={enterReorderMode} class="px-3 py-1 rounded-md text-xs font-medium bg-surface-hover text-text-muted hover:text-text transition-colors inline-flex items-center gap-1">
+									<Icon name="grid" class="w-3.5 h-3.5" /> Reorder</button>
 							{/if}
 							<button
 								onclick={() => showUploadZoneManual = showUploadZone ? false : true}
-								class="px-3 py-1 rounded-md text-xs font-medium transition-colors
+								class="px-3 py-1 rounded-md text-xs font-medium transition-colors inline-flex items-center gap-1
 									{showUploadZone ? 'bg-surface-hover text-text-muted' : 'bg-amber-600 hover:bg-amber-500 text-white'}"
 							>
-								{showUploadZone ? 'Cancel' : '+ Add Photos'}
+								{#if showUploadZone}
+									Cancel
+								{:else}
+									<Icon name="plus" class="w-3.5 h-3.5" /> Add Photos
+								{/if}
 							</button>
 						{/if}
 					</div>
 				</div>
 
 				<!-- Photo grid (only this scrolls) -->
-				<div class="flex-1 overflow-y-auto rounded [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto && !reordering ? 'pb-[200px]' : ''}">
+				<div class="flex-1 overflow-y-auto rounded [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto && !reordering && !selecting ? 'pb-[200px]' : ''}">
 					{#if photos.length === 0}
 					{:else if reordering}
 						<!-- Masonry grid for reorder mode -->
@@ -670,15 +758,15 @@
 							{/each}
 						</div>
 					{:else}
-						<!-- Masonry grid for normal mode -->
+						<!-- Masonry grid for normal/select mode -->
 						<div class="flex gap-2" bind:clientWidth={gridWidth}>
 							{#each distributed as column}
 								<div class="flex-1 flex flex-col gap-2">
 									{#each column as photo (photo.id)}
 										<!-- svelte-ignore a11y_no_static_element_interactions -->
 										<div
-											onclick={() => selectPhoto(photo.id)}
-											onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPhoto(photo.id); } }}
+											onclick={() => selecting ? toggleSelect(photo.id) : selectPhoto(photo.id)}
+											onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selecting ? toggleSelect(photo.id) : selectPhoto(photo.id); } }}
 											role="button"
 											tabindex="0"
 											class="block w-full rounded overflow-hidden relative group cursor-pointer"
@@ -690,7 +778,8 @@
 												style:aspect-ratio="{photo.width} / {photo.height}"
 											/>
 
-											<!-- Hover overlay controls -->
+											<!-- Hover overlay controls (hidden during select mode) -->
+											{#if !selecting}
 											<div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors pointer-events-none">
 												<div class="absolute bottom-0 left-0 right-0 p-1.5 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
 													<!-- Toggle hidden -->
@@ -699,20 +788,8 @@
 														title={photo.hidden ? 'Show photo' : 'Hide photo'}
 														class="w-7 h-7 rounded bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-sm transition-colors"
 													>
-														{#if photo.hidden}
-															<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-																<path fill-rule="evenodd" d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.745-1.745a10.029 10.029 0 003.3-4.38 1.651 1.651 0 000-1.185A10.004 10.004 0 009.999 3a9.956 9.956 0 00-4.744 1.194L3.28 2.22zM7.752 6.69l1.092 1.092a2.5 2.5 0 013.374 3.373l1.092 1.092a4 4 0 00-5.558-5.558z" clip-rule="evenodd" />
-																<path d="M10.748 13.93l2.523 2.523a9.987 9.987 0 01-3.27.547c-4.258 0-7.894-2.66-9.337-6.41a1.651 1.651 0 010-1.186A10.007 10.007 0 012.839 6.02L6.07 9.252a4 4 0 004.678 4.678z" />
-															</svg>
-														{:else}
-															<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-																<path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
-																<path fill-rule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
-															</svg>
-														{/if}
+														<Icon name={photo.hidden ? 'eye-slash' : 'eye'} />
 													</button>
-
-													<!-- Set as cover -->
 													<button
 														onclick={(e) => setAsCoverInline(photo, e)}
 														disabled={photo.id === roll.cover_photo_id}
@@ -720,32 +797,34 @@
 														class="w-7 h-7 rounded bg-black/60 flex items-center justify-center text-sm transition-colors
 															{photo.id === roll.cover_photo_id ? 'text-yellow-400 cursor-default' : 'hover:bg-black/80 text-white'}"
 													>
-														<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-															<path fill-rule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z" clip-rule="evenodd" />
-														</svg>
+														<Icon name="star" />
 													</button>
-
-													<!-- Delete -->
 													<button
 														onclick={(e) => requestDeletePhotoInline(photo, e)}
 														title="Delete photo"
 														class="w-7 h-7 rounded bg-black/60 hover:bg-error/80 text-white flex items-center justify-center text-sm transition-colors"
 													>
-														<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-															<path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022 1.005 11.36c.09 1.017.946 1.789 1.966 1.789h6.03c1.02 0 1.876-.772 1.966-1.789l1.005-11.36.149.022a.75.75 0 10.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd" />
-														</svg>
+														<Icon name="trash" />
 													</button>
 												</div>
 											</div>
+											{/if}
 
-											<!-- Selection border overlay -->
-											{#if selectedPhotoId === photo.id}
+											<!-- Selection overlays -->
+											{#if selecting}
+												<div class="absolute top-1.5 left-1.5 w-5 h-5 rounded border-2 flex items-center justify-center pointer-events-none
+													{selectedIds.has(photo.id) ? 'bg-amber-500 border-amber-500' : 'border-white/60 bg-black/30'}">
+													{#if selectedIds.has(photo.id)}
+														<Icon name="check" class="w-3.5 h-3.5 text-white" />
+													{/if}
+												</div>
+											{:else if selectedPhotoId === photo.id}
 												<div class="absolute inset-0 rounded border-2 border-amber-500 pointer-events-none"></div>
 											{/if}
 
 											<!-- Badges -->
 											{#if photo.hidden}
-												<span class="absolute top-1 left-1 px-1 py-0.5 bg-error/80 text-white text-[9px] font-semibold uppercase rounded">
+												<span class="absolute top-1 {selecting ? 'left-8' : 'left-1'} px-1 py-0.5 bg-error/80 text-white text-[9px] font-semibold uppercase rounded">
 													Hidden
 												</span>
 											{/if}
@@ -766,8 +845,8 @@
 	</div>
 {/if}
 
-<!-- Floating photo editor - fixed to bottom (hidden during reorder) -->
-{#if selectedPhoto && roll && !reordering}
+<!-- Floating photo editor - fixed to bottom (hidden during reorder/select) -->
+{#if selectedPhoto && roll && !reordering && !selecting}
 	<div class="fixed bottom-4 left-1/2 -translate-x-1/3 z-50 bg-surface border border-border rounded-lg shadow-[0_-4px_24px_rgba(0,0,0,0.4)] w-[min(56rem,calc(100vw-18rem-2rem))]">
 		<div class="flex gap-5 p-4 max-w-full">
 			<!-- Preview (left) -->
