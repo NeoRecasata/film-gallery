@@ -60,6 +60,7 @@
 	let photoHidden = $state(false);
 	let savingPhoto = $state(false);
 	let deletingPhoto = $state(false);
+	let showUploadZone = $state(false);
 
 	// Confirm dialog state
 	let confirmOpen = $state(false);
@@ -494,14 +495,23 @@
 
 			<!-- Right area - photos -->
 			<div class="flex-1 min-w-0 flex flex-col min-h-0">
-				<!-- Upload zone (stays at top) -->
+				<!-- Upload zone (stays at top, toggled) -->
 				<div class="flex-shrink-0">
-					<UploadQueue rollId={roll.id} onuploaded={handleUploaded} />
+					<UploadQueue rollId={roll.id} onuploaded={handleUploaded} showDropZone={showUploadZone} onallcomplete={() => showUploadZone = false} />
 				</div>
 
-				<h2 class="mt-4 text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-3 flex-shrink-0">
-					Photos ({photos.length})
-				</h2>
+				<div class="mt-4 mb-3 flex items-center justify-between flex-shrink-0">
+					<h2 class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+						Photos ({photos.length})
+					</h2>
+					<button
+						onclick={() => showUploadZone = !showUploadZone}
+						class="px-3 py-1 rounded-md text-xs font-medium transition-colors
+							{showUploadZone ? 'bg-surface-hover text-text-muted' : 'bg-amber-600 hover:bg-amber-500 text-white'}"
+					>
+						{showUploadZone ? 'Cancel' : '+ Add Photos'}
+					</button>
+				</div>
 
 				<!-- Photo grid (only this scrolls) -->
 				<div class="flex-1 overflow-y-auto rounded [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto ? 'pb-[200px]' : ''}">

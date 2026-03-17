@@ -3,7 +3,7 @@
 	import type { Photo } from '$lib/types';
 	import { toasts } from '$lib/stores/toast';
 
-	let { rollId, onuploaded }: { rollId: string; onuploaded: (photo: Photo) => void } = $props();
+	let { rollId, onuploaded, onallcomplete, showDropZone = true }: { rollId: string; onuploaded: (photo: Photo) => void; onallcomplete?: () => void; showDropZone?: boolean } = $props();
 
 	type UploadItem = {
 		file: File;
@@ -26,11 +26,12 @@
 	const failedCount = $derived(items.filter(i => i.status === 'failed').length);
 	const isComplete = $derived(hasItems && activeCount === 0);
 
-	// Auto-clear completed uploads after 60 seconds
+	// Auto-clear completed uploads after 60 seconds and notify parent
 	let autoClearTimer: ReturnType<typeof setTimeout> | null = null;
 
 	$effect(() => {
 		if (isComplete && doneCount > 0 && failedCount === 0) {
+			onallcomplete?.();
 			autoClearTimer = setTimeout(() => {
 				items = items.filter(i => i.status !== 'done');
 			}, 60000);
@@ -126,6 +127,7 @@
 </script>
 
 <!-- Drop zone in main content -->
+{#if showDropZone}
 <div>
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -155,6 +157,7 @@
 		onchange={handleFileSelect}
 	/>
 </div>
+{/if}
 
 <!-- Floating upload queue widget -->
 {#if hasItems}
