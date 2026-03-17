@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -13,11 +15,13 @@ func (s *Server) handleListPublicRolls(w http.ResponseWriter, r *http.Request) {
 		SELECT r.id, r.title, r.slug, r.description, r.camera, r.film_stock, r.lens,
 			r.location, r.shot_at, r.published, r.cover_photo_id, r.sort_order,
 			r.created_at, r.updated_at,
-			COUNT(p.id) FILTER (WHERE p.hidden = false) AS photo_count
+			COUNT(p.id) FILTER (WHERE p.hidden = false) AS photo_count,
+			cp.variants AS cover_variants
 		FROM rolls r
 		LEFT JOIN photos p ON p.roll_id = r.id
+		LEFT JOIN photos cp ON cp.id = r.cover_photo_id
 		WHERE r.published = true
-		GROUP BY r.id
+		GROUP BY r.id, cp.variants
 		ORDER BY r.sort_order ASC, r.created_at DESC`)
 	if err != nil {
 		Error(w, http.StatusInternalServerError, "database error")
@@ -30,22 +34,27 @@ func (s *Server) handleListPublicRolls(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var roll models.Roll
+		var coverVariantsJSON []byte
 		err := rows.Scan(
 			&roll.ID, &roll.Title, &roll.Slug, &roll.Description,
 			&roll.Camera, &roll.FilmStock, &roll.Lens, &roll.Location, &roll.ShotAt,
 			&roll.Published, &roll.CoverPhotoID, &roll.SortOrder,
 			&roll.CreatedAt, &roll.UpdatedAt,
 			&roll.PhotoCount,
+			&coverVariantsJSON,
 		)
 		if err != nil {
 			Error(w, http.StatusInternalServerError, "failed to scan roll")
 			return
 		}
 
-		if roll.CoverPhotoID != nil {
-			url := s.getCoverURL(ctx, *roll.CoverPhotoID)
-			if url != "" {
-				roll.CoverURL = &url
+		if coverVariantsJSON != nil {
+			var variants models.PhotoVariants
+			json.Unmarshal(coverVariantsJSON, &variants)
+			if thumbKey, ok := variants["thumb"]; ok {
+				if url, err := s.Storage.URL(ctx, thumbKey); err == nil && url != "" {
+					roll.CoverURL = &url
+				}
 			}
 		}
 
@@ -99,6 +108,7 @@ func (s *Server) handleGetPublicRoll(w http.ResponseWriter, r *http.Request) {
 			&p.FileSize, &p.BlurHash, &p.SortOrder, &p.CreatedAt, &p.UpdatedAt,
 		)
 		if err != nil {
+			log.Printf("WARNING: failed to scan photo row in roll %s: %v", roll.ID, err)
 			continue
 		}
 

@@ -3,9 +3,12 @@ package api
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -13,6 +16,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/lib/pq"
 
 	"github.com/NeoRecasata/film-gallery/backend/internal/models"
 	slugpkg "github.com/NeoRecasata/film-gallery/backend/internal/slug"
@@ -73,10 +77,12 @@ func (s *Server) handleListRolls(w http.ResponseWriter, r *http.Request) {
 		SELECT r.id, r.title, r.slug, r.description, r.camera, r.film_stock, r.lens,
 			r.location, r.shot_at, r.published, r.cover_photo_id, r.sort_order,
 			r.created_at, r.updated_at,
-			COUNT(p.id) AS photo_count
+			COUNT(p.id) AS photo_count,
+			cp.variants AS cover_variants
 		FROM rolls r
 		LEFT JOIN photos p ON p.roll_id = r.id
-		GROUP BY r.id
+		LEFT JOIN photos cp ON cp.id = r.cover_photo_id
+		GROUP BY r.id, cp.variants
 		ORDER BY r.sort_order ASC, r.created_at DESC`)
 	if err != nil {
 		Error(w, http.StatusInternalServerError, "database error")
@@ -89,22 +95,27 @@ func (s *Server) handleListRolls(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var roll models.Roll
+		var coverVariantsJSON []byte
 		err := rows.Scan(
 			&roll.ID, &roll.Title, &roll.Slug, &roll.Description,
 			&roll.Camera, &roll.FilmStock, &roll.Lens, &roll.Location, &roll.ShotAt,
 			&roll.Published, &roll.CoverPhotoID, &roll.SortOrder,
 			&roll.CreatedAt, &roll.UpdatedAt,
 			&roll.PhotoCount,
+			&coverVariantsJSON,
 		)
 		if err != nil {
 			Error(w, http.StatusInternalServerError, "failed to scan roll")
 			return
 		}
 
-		if roll.CoverPhotoID != nil {
-			url := s.getCoverURL(ctx, *roll.CoverPhotoID)
-			if url != "" {
-				roll.CoverURL = &url
+		if coverVariantsJSON != nil {
+			var variants models.PhotoVariants
+			json.Unmarshal(coverVariantsJSON, &variants)
+			if thumbKey, ok := variants["thumb"]; ok {
+				if url, err := s.Storage.URL(ctx, thumbKey); err == nil && url != "" {
+					roll.CoverURL = &url
+				}
 			}
 		}
 
@@ -114,23 +125,6 @@ func (s *Server) handleListRolls(w http.ResponseWriter, r *http.Request) {
 	JSON(w, http.StatusOK, rolls)
 }
 
-// getCoverURL resolves the thumbnail URL for a cover photo.
-func (s *Server) getCoverURL(ctx context.Context, photoID string) string {
-	var variantsJSON []byte
-	err := s.DB.QueryRow("SELECT variants FROM photos WHERE id = $1", photoID).Scan(&variantsJSON)
-	if err != nil {
-		return ""
-	}
-
-	var variants models.PhotoVariants
-	json.Unmarshal(variantsJSON, &variants)
-
-	if thumbKey, ok := variants["thumb"]; ok {
-		url, _ := s.Storage.URL(ctx, thumbKey)
-		return url
-	}
-	return ""
-}
 
 func (s *Server) handleGetRoll(w http.ResponseWriter, r *http.Request) {
 	rollID := chi.URLParam(r, "id")
@@ -176,6 +170,7 @@ func (s *Server) handleGetRoll(w http.ResponseWriter, r *http.Request) {
 			&p.FileSize, &p.BlurHash, &p.SortOrder, &p.CreatedAt, &p.UpdatedAt,
 		)
 		if err != nil {
+			log.Printf("WARNING: failed to scan photo row in roll %s: %v", rollID, err)
 			continue
 		}
 		var variants models.PhotoVariants
@@ -262,7 +257,16 @@ func (s *Server) handleUpdateRoll(w http.ResponseWriter, r *http.Request) {
 		&roll.Published, &roll.CoverPhotoID, &roll.SortOrder, &roll.CreatedAt, &roll.UpdatedAt,
 	)
 	if err != nil {
-		Error(w, http.StatusNotFound, "roll not found")
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			Error(w, http.StatusConflict, "a roll with that slug already exists")
+			return
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			Error(w, http.StatusNotFound, "roll not found")
+			return
+		}
+		Error(w, http.StatusInternalServerError, "failed to update roll")
 		return
 	}
 
@@ -409,15 +413,6 @@ func (s *Server) processAndStorePhoto(ctx context.Context, fh *multipart.FileHea
 		return nil, fmt.Errorf("failed to generate ID")
 	}
 
-	// Generate slug: rollSlug-N
-	var photoCount int
-	s.DB.QueryRow("SELECT COUNT(*) FROM photos WHERE roll_id = $1", rollID).Scan(&photoCount)
-	photoSlug := fmt.Sprintf("%s-%d", rollSlug, photoCount+1)
-	photoSlug, err = s.ensureUniqueSlug(ctx, "photos", photoSlug)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate slug")
-	}
-
 	// Store original
 	originalKey := fmt.Sprintf("photos/%s/original%s", photoID, ext)
 	if err := s.Storage.Put(ctx, originalKey, bytes.NewReader(data)); err != nil {
@@ -439,28 +434,47 @@ func (s *Server) processAndStorePhoto(ctx context.Context, fh *multipart.FileHea
 		return nil, fmt.Errorf("failed to serialize variants")
 	}
 
-	// Get next sort order within roll
-	var nextOrder int
-	s.DB.QueryRow("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM photos WHERE roll_id = $1", rollID).Scan(&nextOrder)
-
-	// Insert into database
+	// Generate slug and insert — retry on slug collision from concurrent uploads.
+	// Slug generation (COUNT + ensureUniqueSlug) races with other goroutines, so
+	// if the INSERT hits a unique constraint violation we re-generate and retry.
 	var photo models.Photo
-	err = s.DB.QueryRowContext(ctx, `
-		INSERT INTO photos (id, slug, roll_id, original_key, variants, width, height,
-			file_size, blur_hash, sort_order)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING id, title, description, slug, film_stock, camera, lens, location, taken_at,
-			roll_id, hidden, width, height, file_size, blur_hash, sort_order, created_at, updated_at`,
-		photoID, photoSlug, rollID, originalKey, variantsJSON,
-		origWidth, origHeight, len(data), blurHash, nextOrder,
-	).Scan(
-		&photo.ID, &photo.Title, &photo.Description, &photo.Slug,
-		&photo.FilmStock, &photo.Camera, &photo.Lens, &photo.Location, &photo.TakenAt,
-		&photo.RollID, &photo.Hidden, &photo.Width, &photo.Height,
-		&photo.FileSize, &photo.BlurHash, &photo.SortOrder, &photo.CreatedAt, &photo.UpdatedAt,
-	)
-	if err != nil {
+	for attempt := 0; attempt < 3; attempt++ {
+		var photoCount int
+		s.DB.QueryRow("SELECT COUNT(*) FROM photos WHERE roll_id = $1", rollID).Scan(&photoCount)
+		photoSlug := fmt.Sprintf("%s-%d", rollSlug, photoCount+1)
+		photoSlug, err = s.ensureUniqueSlug(ctx, "photos", photoSlug)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate slug")
+		}
+
+		var nextOrder int
+		s.DB.QueryRow("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM photos WHERE roll_id = $1", rollID).Scan(&nextOrder)
+
+		err = s.DB.QueryRowContext(ctx, `
+			INSERT INTO photos (id, slug, roll_id, original_key, variants, width, height,
+				file_size, blur_hash, sort_order)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			RETURNING id, title, description, slug, film_stock, camera, lens, location, taken_at,
+				roll_id, hidden, width, height, file_size, blur_hash, sort_order, created_at, updated_at`,
+			photoID, photoSlug, rollID, originalKey, variantsJSON,
+			origWidth, origHeight, len(data), blurHash, nextOrder,
+		).Scan(
+			&photo.ID, &photo.Title, &photo.Description, &photo.Slug,
+			&photo.FilmStock, &photo.Camera, &photo.Lens, &photo.Location, &photo.TakenAt,
+			&photo.RollID, &photo.Hidden, &photo.Width, &photo.Height,
+			&photo.FileSize, &photo.BlurHash, &photo.SortOrder, &photo.CreatedAt, &photo.UpdatedAt,
+		)
+		if err == nil {
+			break
+		}
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			continue // slug collision, retry
+		}
 		return nil, fmt.Errorf("failed to save photo")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to save photo after retries")
 	}
 
 	// Populate URLs
