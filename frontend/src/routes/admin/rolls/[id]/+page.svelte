@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
+	import { goto, beforeNavigate } from '$app/navigation';
 	import { api } from '$lib/api';
 	import type { Roll, Photo } from '$lib/types';
 	import { toasts } from '$lib/stores/toast';
@@ -99,6 +99,12 @@
 
 	$effect(() => {
 		loadRoll();
+	});
+
+	beforeNavigate(({ cancel }) => {
+		if (isDirty && !confirm('You have unsaved changes. Leave this page?')) {
+			cancel();
+		}
 	});
 
 	// Sync photo editor fields when selection changes
