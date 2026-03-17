@@ -199,5 +199,22 @@ func (s *Server) handleGetPhoto(w http.ResponseWriter, r *http.Request) {
 		p.URLs[name] = url
 	}
 
+	// Resolve prev/next photo slugs (global feed order: created_at DESC)
+	var prevSlug, nextSlug *string
+	s.DB.QueryRow(`
+		SELECT p2.slug FROM photos p2
+		JOIN rolls r2 ON r2.id = p2.roll_id
+		WHERE r2.published = true AND p2.hidden = false AND p2.created_at > $1
+		ORDER BY p2.created_at ASC LIMIT 1`, p.CreatedAt,
+	).Scan(&prevSlug)
+	s.DB.QueryRow(`
+		SELECT p2.slug FROM photos p2
+		JOIN rolls r2 ON r2.id = p2.roll_id
+		WHERE r2.published = true AND p2.hidden = false AND p2.created_at < $1
+		ORDER BY p2.created_at DESC LIMIT 1`, p.CreatedAt,
+	).Scan(&nextSlug)
+	p.PrevSlug = prevSlug
+	p.NextSlug = nextSlug
+
 	JSON(w, http.StatusOK, p)
 }

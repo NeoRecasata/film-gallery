@@ -56,4 +56,6 @@ type Photo struct {
 	URLs      map[string]string `json:"urls,omitempty"`
 	RollSlug  string            `json:"roll_slug,omitempty"`
 	RollTitle string            `json:"roll_title,omitempty"`
+	PrevSlug  *string           `json:"prev_slug,omitempty"`
+	NextSlug  *string           `json:"next_slug,omitempty"`
 }

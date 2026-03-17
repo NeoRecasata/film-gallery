@@ -12,6 +12,8 @@ export interface Photo {
 	location: string | null;
 	roll_slug?: string;
 	roll_title?: string;
+	prev_slug?: string | null;
+	next_slug?: string | null;
 	width: number;
 	height: number;
 	file_size: number;
