@@ -500,7 +500,7 @@
 				</div>
 
 				<!-- Photo grid (only this scrolls) -->
-				<div class="mt-4 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto ? 'pb-[200px]' : ''}">
+				<div class="mt-4 flex-1 overflow-y-auto rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto ? 'pb-[200px]' : ''}">
 					<h2 class="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-3">
 						Photos ({photos.length})
 					</h2>
