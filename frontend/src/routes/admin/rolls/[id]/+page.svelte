@@ -590,7 +590,7 @@
 	<p class="text-error">Roll not found.</p>
 {:else}
 	<!-- Fixed layout: top bar + content area — fill parent, no scroll on this level -->
-	<div class="flex flex-col" style="height: calc(100vh - 4rem);">
+	<div class="flex flex-col lg:h-[calc(100vh-4rem)]">
 		<!-- Top bar -->
 		<div class="flex items-center justify-between pb-4 flex-shrink-0 border-b border-border">
 			<div class="flex items-center gap-2 text-sm">
@@ -834,7 +834,7 @@
 											<!-- Hover overlay controls (hidden during select mode) -->
 											{#if !selecting}
 											<div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors pointer-events-none">
-												<div class="absolute bottom-0 left-0 right-0 p-1.5 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
+												<div class="absolute bottom-0 left-0 right-0 p-1.5 flex items-center justify-end gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
 													<!-- Toggle hidden -->
 													<button
 														onclick={(e) => togglePhotoHiddenInline(photo, e)}
@@ -911,9 +911,9 @@
 	</div>
 {/if}
 
-<!-- Floating photo editor - fixed to bottom (hidden during reorder/select) -->
+<!-- Floating photo editor - fixed to bottom (hidden during reorder/select, desktop only) -->
 {#if selectedPhoto && roll && !reordering && !selecting}
-	<div class="fixed bottom-4 left-1/2 -translate-x-1/3 z-50 bg-surface border border-border rounded-lg shadow-[0_-4px_24px_rgba(0,0,0,0.4)] w-[min(56rem,calc(100vw-18rem-2rem))]">
+	<div class="hidden lg:block fixed bottom-4 left-1/2 -translate-x-1/3 z-50 bg-surface border border-border rounded-lg shadow-[0_-4px_24px_rgba(0,0,0,0.4)] w-[min(56rem,calc(100vw-18rem-2rem))]">
 		<div class="flex gap-5 p-4 max-w-full">
 			<!-- Preview (left) -->
 			<div class="w-[160px] flex-shrink-0">

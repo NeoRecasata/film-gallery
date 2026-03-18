@@ -321,7 +321,7 @@
 {:else if !collection}
 	<p class="text-error">Collection not found.</p>
 {:else}
-	<div class="flex flex-col" style="height: calc(100vh - 4rem);">
+	<div class="flex flex-col lg:h-[calc(100vh-4rem)]">
 		<!-- Top bar -->
 		<div class="flex items-center justify-between pb-4 flex-shrink-0 border-b border-border">
 			<div class="flex items-center gap-2 text-sm">
