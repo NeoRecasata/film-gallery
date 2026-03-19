@@ -490,7 +490,7 @@
 											/>
 											<!-- Hover overlay -->
 											<div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors pointer-events-none">
-												<div class="absolute bottom-0 left-0 right-0 p-1.5 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
+												<div class="absolute bottom-0 left-0 right-0 p-1.5 flex items-center justify-end gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
 													<!-- Set as cover -->
 													<button
 														onclick={(e) => setCoverInline(photo, e)}
