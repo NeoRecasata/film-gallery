@@ -839,7 +839,7 @@
 													<button
 														onclick={(e) => togglePhotoHiddenInline(photo, e)}
 														title={photo.hidden ? 'Show photo' : 'Hide photo'}
-														class="w-7 h-7 rounded bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-sm transition-colors"
+														class="w-9 h-9 lg:w-7 lg:h-7 rounded bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-base lg:text-sm transition-colors"
 													>
 														<Icon name={photo.hidden ? 'eye-slash' : 'eye'} />
 													</button>
@@ -847,7 +847,7 @@
 														onclick={(e) => setAsCoverInline(photo, e)}
 														disabled={photo.id === roll.cover_photo_id}
 														title={photo.id === roll.cover_photo_id ? 'Current cover' : 'Set as cover'}
-														class="w-7 h-7 rounded bg-black/60 flex items-center justify-center text-sm transition-colors
+														class="w-9 h-9 lg:w-7 lg:h-7 rounded bg-black/60 flex items-center justify-center text-base lg:text-sm transition-colors
 															{photo.id === roll.cover_photo_id ? 'text-yellow-400 cursor-default' : 'hover:bg-black/80 text-white'}"
 													>
 														<Icon name="star" />
@@ -855,7 +855,7 @@
 													<button
 														onclick={(e) => toggleFeaturedInline(photo, e)}
 														title={photo.featured ? 'Unfeature' : 'Feature'}
-														class="w-7 h-7 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-sm transition-colors
+														class="w-9 h-9 lg:w-7 lg:h-7 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-base lg:text-sm transition-colors
 															{photo.featured ? 'text-amber-400' : 'text-white'}"
 													>
 														<Icon name="sparkle" />
@@ -863,7 +863,7 @@
 													<button
 														onclick={(e) => requestDeletePhotoInline(photo, e)}
 														title="Delete photo"
-														class="w-7 h-7 rounded bg-black/60 hover:bg-error/80 text-white flex items-center justify-center text-sm transition-colors"
+														class="w-9 h-9 lg:w-7 lg:h-7 rounded bg-black/60 hover:bg-error/80 text-white flex items-center justify-center text-base lg:text-sm transition-colors"
 													>
 														<Icon name="trash" />
 													</button>
@@ -913,7 +913,7 @@
 
 <!-- Floating photo editor - fixed to bottom (hidden during reorder/select, desktop only) -->
 {#if selectedPhoto && roll && !reordering && !selecting}
-	<div class="hidden lg:block fixed bottom-4 left-1/2 -translate-x-1/3 z-50 bg-surface border border-border rounded-lg shadow-[0_-4px_24px_rgba(0,0,0,0.4)] w-[min(56rem,calc(100vw-18rem-2rem))]">
+	<div class="hidden lg:block fixed bottom-4 left-[calc(140px+50vw)] -translate-x-1/2 z-50 bg-surface border border-border rounded-lg shadow-[0_-4px_24px_rgba(0,0,0,0.4)] w-[min(56rem,calc(100vw-280px-3rem))]">
 		<div class="flex gap-5 p-4 max-w-full">
 			<!-- Preview (left) -->
 			<div class="w-[160px] flex-shrink-0">
