@@ -62,8 +62,10 @@
 	let photoHidden = $state(false);
 	let savingPhoto = $state(false);
 	let deletingPhoto = $state(false);
-	let showUploadZone = $derived.by(() => showUploadZoneManual ?? photos.length === 0);
 	let showUploadZoneManual = $state<boolean | null>(null);
+
+	const photos = $derived(roll?.photos || []);
+	let showUploadZone = $derived.by(() => showUploadZoneManual ?? photos.length === 0);
 
 	// Bulk select state
 	let selecting = $state(false);
@@ -93,8 +95,6 @@
 	let confirmMessage = $state('');
 	let confirmLabel = $state('Delete');
 	let confirmAction = $state<(() => void) | null>(null);
-
-	const photos = $derived(roll?.photos || []);
 	const selectedPhoto = $derived(photos.find(p => p.id === selectedPhotoId) || null);
 
 	// Masonry columns
