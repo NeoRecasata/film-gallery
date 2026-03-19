@@ -20,7 +20,7 @@
 		</div>
 	{/if}
 
-	{#if settings.social_links.length > 0}
+	{#if settings.social_links?.length > 0}
 		<div class="mt-10 flex flex-wrap gap-4">
 			{#each settings.social_links as link}
 				<a
@@ -33,5 +33,9 @@
 				</a>
 			{/each}
 		</div>
+	{/if}
+
+	{#if !settings.about_text && (!settings.social_links || settings.social_links.length === 0)}
+		<p class="text-text-muted">Nothing here yet.</p>
 	{/if}
 </div>
