@@ -20,7 +20,7 @@
 		if (!cursor || loading) return;
 		loading = true;
 		try {
-			const res = await api.getPhotos(cursor);
+			const res = await api.getPhotos(cursor, 20, true);
 			photos = [...photos, ...res.data];
 			cursor = res.next_cursor;
 		} catch (e) {
@@ -35,6 +35,12 @@
 		lightboxOpen = true;
 	}
 </script>
+
+<svelte:head>
+	{#if photos.length > 0 && photos[0].urls.medium}
+		<meta property="og:image" content={photos[0].urls.medium} />
+	{/if}
+</svelte:head>
 
 <div class="max-w-7xl mx-auto px-4 py-8">
 	{#if photos.length > 0}

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { PageServerData } from './$types';
+	import type { PageData } from './$types';
 
-	let { data }: { data: PageServerData } = $props();
+	let { data }: { data: PageData } = $props();
 	const photo = $derived(data.photo);
 	const metaItems = $derived(
 		[photo.camera, photo.film_stock, photo.lens, photo.location].filter(Boolean)

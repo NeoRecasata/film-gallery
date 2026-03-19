@@ -85,7 +85,7 @@ func (s *Server) handleGetPublicRoll(w http.ResponseWriter, r *http.Request) {
 	// Load visible photos (hidden = false)
 	rows, err := s.DB.Query(`
 		SELECT id, title, description, slug, film_stock, camera, lens, location, taken_at,
-			roll_id, hidden, variants, width, height, file_size, blur_hash,
+			roll_id, hidden, featured, variants, width, height, file_size, blur_hash,
 			sort_order, created_at, updated_at
 		FROM photos WHERE roll_id = $1 AND hidden = false
 		ORDER BY sort_order ASC, created_at DESC`, roll.ID)
@@ -104,7 +104,7 @@ func (s *Server) handleGetPublicRoll(w http.ResponseWriter, r *http.Request) {
 		err := rows.Scan(
 			&p.ID, &p.Title, &p.Description, &p.Slug,
 			&p.FilmStock, &p.Camera, &p.Lens, &p.Location, &p.TakenAt,
-			&p.RollID, &p.Hidden, &variantsJSON, &p.Width, &p.Height,
+			&p.RollID, &p.Hidden, &p.Featured, &variantsJSON, &p.Width, &p.Height,
 			&p.FileSize, &p.BlurHash, &p.SortOrder, &p.CreatedAt, &p.UpdatedAt,
 		)
 		if err != nil {

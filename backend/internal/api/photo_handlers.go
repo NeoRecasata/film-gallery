@@ -66,6 +66,12 @@ func (s *Server) handleUpdatePhoto(w http.ResponseWriter, r *http.Request) {
 		argIdx++
 	}
 
+	if val, ok := req["featured"]; ok {
+		setClauses = append(setClauses, fmt.Sprintf("featured = $%d", argIdx))
+		args = append(args, val)
+		argIdx++
+	}
+
 	if val, ok := req["taken_at"]; ok {
 		setClauses = append(setClauses, fmt.Sprintf("taken_at = $%d", argIdx))
 		if val == nil {
@@ -83,7 +89,7 @@ func (s *Server) handleUpdatePhoto(w http.ResponseWriter, r *http.Request) {
 
 	args = append(args, photoID)
 	query := fmt.Sprintf(
-		"UPDATE photos SET %s WHERE id = $%d RETURNING id, title, description, slug, film_stock, camera, lens, location, taken_at, roll_id, hidden, width, height, file_size, blur_hash, sort_order, created_at, updated_at",
+		"UPDATE photos SET %s WHERE id = $%d RETURNING id, title, description, slug, film_stock, camera, lens, location, taken_at, roll_id, hidden, featured, width, height, file_size, blur_hash, sort_order, created_at, updated_at",
 		strings.Join(setClauses, ", "), argIdx,
 	)
 
@@ -91,7 +97,7 @@ func (s *Server) handleUpdatePhoto(w http.ResponseWriter, r *http.Request) {
 	err := s.DB.QueryRow(query, args...).Scan(
 		&photo.ID, &photo.Title, &photo.Description, &photo.Slug,
 		&photo.FilmStock, &photo.Camera, &photo.Lens, &photo.Location, &photo.TakenAt,
-		&photo.RollID, &photo.Hidden, &photo.Width, &photo.Height,
+		&photo.RollID, &photo.Hidden, &photo.Featured, &photo.Width, &photo.Height,
 		&photo.FileSize, &photo.BlurHash, &photo.SortOrder, &photo.CreatedAt, &photo.UpdatedAt,
 	)
 	if err != nil {

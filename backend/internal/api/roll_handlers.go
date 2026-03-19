@@ -147,7 +147,7 @@ func (s *Server) handleGetRoll(w http.ResponseWriter, r *http.Request) {
 	// Load all photos for this roll (including hidden)
 	rows, err := s.DB.Query(`
 		SELECT id, title, description, slug, film_stock, camera, lens, location, taken_at,
-			roll_id, hidden, variants, width, height, file_size, blur_hash,
+			roll_id, hidden, featured, variants, width, height, file_size, blur_hash,
 			sort_order, created_at, updated_at
 		FROM photos WHERE roll_id = $1
 		ORDER BY sort_order ASC, created_at DESC`, rollID)
@@ -166,7 +166,7 @@ func (s *Server) handleGetRoll(w http.ResponseWriter, r *http.Request) {
 		err := rows.Scan(
 			&p.ID, &p.Title, &p.Description, &p.Slug,
 			&p.FilmStock, &p.Camera, &p.Lens, &p.Location, &p.TakenAt,
-			&p.RollID, &p.Hidden, &variantsJSON, &p.Width, &p.Height,
+			&p.RollID, &p.Hidden, &p.Featured, &variantsJSON, &p.Width, &p.Height,
 			&p.FileSize, &p.BlurHash, &p.SortOrder, &p.CreatedAt, &p.UpdatedAt,
 		)
 		if err != nil {
@@ -455,13 +455,13 @@ func (s *Server) processAndStorePhoto(ctx context.Context, fh *multipart.FileHea
 				file_size, blur_hash, sort_order)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 			RETURNING id, title, description, slug, film_stock, camera, lens, location, taken_at,
-				roll_id, hidden, width, height, file_size, blur_hash, sort_order, created_at, updated_at`,
+				roll_id, hidden, featured, width, height, file_size, blur_hash, sort_order, created_at, updated_at`,
 			photoID, photoSlug, rollID, originalKey, variantsJSON,
 			origWidth, origHeight, len(data), blurHash, nextOrder,
 		).Scan(
 			&photo.ID, &photo.Title, &photo.Description, &photo.Slug,
 			&photo.FilmStock, &photo.Camera, &photo.Lens, &photo.Location, &photo.TakenAt,
-			&photo.RollID, &photo.Hidden, &photo.Width, &photo.Height,
+			&photo.RollID, &photo.Hidden, &photo.Featured, &photo.Width, &photo.Height,
 			&photo.FileSize, &photo.BlurHash, &photo.SortOrder, &photo.CreatedAt, &photo.UpdatedAt,
 		)
 		if err == nil {

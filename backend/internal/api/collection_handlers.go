@@ -31,7 +31,7 @@ func (s *Server) handleGetAdminCollection(w http.ResponseWriter, r *http.Request
 	// Load ALL photos in this collection (no visibility filter)
 	rows, err := s.DB.Query(`
 		SELECT p.id, p.title, p.description, p.slug, p.film_stock, p.camera, p.lens,
-			p.location, p.taken_at, p.roll_id, p.hidden, p.variants, p.width, p.height,
+			p.location, p.taken_at, p.roll_id, p.hidden, p.featured, p.variants, p.width, p.height,
 			p.file_size, p.blur_hash, cp.sort_order, p.created_at, p.updated_at,
 			r.title AS roll_title
 		FROM photos p
@@ -54,7 +54,7 @@ func (s *Server) handleGetAdminCollection(w http.ResponseWriter, r *http.Request
 		err := rows.Scan(
 			&p.ID, &p.Title, &p.Description, &p.Slug,
 			&p.FilmStock, &p.Camera, &p.Lens, &p.Location, &p.TakenAt,
-			&p.RollID, &p.Hidden, &variantsJSON, &p.Width, &p.Height,
+			&p.RollID, &p.Hidden, &p.Featured, &variantsJSON, &p.Width, &p.Height,
 			&p.FileSize, &p.BlurHash, &p.SortOrder, &p.CreatedAt, &p.UpdatedAt,
 			&p.RollTitle,
 		)

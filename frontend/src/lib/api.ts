@@ -82,9 +82,10 @@ class ApiClient {
 	}
 
 	// Public endpoints
-	async getPhotos(cursor?: string, limit = 20): Promise<PhotosResponse> {
+	async getPhotos(cursor?: string, limit = 20, featured?: boolean): Promise<PhotosResponse> {
 		const params = new URLSearchParams({ limit: String(limit) });
 		if (cursor) params.set('cursor', cursor);
+		if (featured) params.set('featured', 'true');
 		return this.request(`/api/photos?${params}`);
 	}
 

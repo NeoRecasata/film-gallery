@@ -25,7 +25,7 @@ func (s *Server) handleListPhotos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := `SELECT p.id, p.title, p.description, p.slug, p.film_stock, p.camera, p.lens,
-		p.location, p.taken_at, p.roll_id, p.hidden, p.variants, p.width, p.height,
+		p.location, p.taken_at, p.roll_id, p.hidden, p.featured, p.variants, p.width, p.height,
 		p.file_size, p.blur_hash, p.sort_order, p.created_at, p.updated_at,
 		r.slug AS roll_slug, r.title AS roll_title,
 		r.camera AS roll_camera, r.film_stock AS roll_film_stock,
@@ -54,6 +54,10 @@ func (s *Server) handleListPhotos(w http.ResponseWriter, r *http.Request) {
 		query += fmt.Sprintf(" AND (p.camera = $%d OR (p.camera IS NULL AND r.camera = $%d))", argIdx, argIdx)
 		args = append(args, cam)
 		argIdx++
+	}
+
+	if r.URL.Query().Get("featured") == "true" {
+		query += " AND p.featured = true"
 	}
 
 	// Cursor pagination: cursor is a created_at timestamp
@@ -86,7 +90,7 @@ func (s *Server) handleListPhotos(w http.ResponseWriter, r *http.Request) {
 		err := rows.Scan(
 			&p.ID, &p.Title, &p.Description, &p.Slug,
 			&p.FilmStock, &p.Camera, &p.Lens, &p.Location, &p.TakenAt,
-			&p.RollID, &p.Hidden, &variantsJSON, &p.Width, &p.Height,
+			&p.RollID, &p.Hidden, &p.Featured, &variantsJSON, &p.Width, &p.Height,
 			&p.FileSize, &p.BlurHash, &p.SortOrder, &p.CreatedAt, &p.UpdatedAt,
 			&rollSlug, &rollTitle,
 			&rollCamera, &rollFilmStock, &rollLens, &rollLocation, &rollShotAt,
@@ -149,7 +153,7 @@ func (s *Server) handleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	var rollShotAt *time.Time
 	err := s.DB.QueryRow(`
 		SELECT p.id, p.title, p.description, p.slug, p.film_stock, p.camera, p.lens,
-			p.location, p.taken_at, p.roll_id, p.hidden, p.variants, p.width, p.height,
+			p.location, p.taken_at, p.roll_id, p.hidden, p.featured, p.variants, p.width, p.height,
 			p.file_size, p.blur_hash, p.sort_order, p.created_at, p.updated_at,
 			r.slug AS roll_slug, r.title AS roll_title,
 			r.camera AS roll_camera, r.film_stock AS roll_film_stock,
@@ -160,7 +164,7 @@ func (s *Server) handleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	).Scan(
 		&p.ID, &p.Title, &p.Description, &p.Slug,
 		&p.FilmStock, &p.Camera, &p.Lens, &p.Location, &p.TakenAt,
-		&p.RollID, &p.Hidden, &variantsJSON, &p.Width, &p.Height,
+		&p.RollID, &p.Hidden, &p.Featured, &variantsJSON, &p.Width, &p.Height,
 		&p.FileSize, &p.BlurHash, &p.SortOrder, &p.CreatedAt, &p.UpdatedAt,
 		&rollSlug, &rollTitle,
 		&rollCamera, &rollFilmStock, &rollLens, &rollLocation, &rollShotAt,

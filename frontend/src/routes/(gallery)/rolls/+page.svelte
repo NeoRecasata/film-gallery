@@ -1,15 +1,21 @@
 <script lang="ts">
-	import type { PageServerData } from './$types';
+	import type { PageData } from './$types';
 
-	let { data }: { data: PageServerData } = $props();
+	let { data }: { data: PageData } = $props();
 </script>
 
 <svelte:head>
 	<title>Rolls | {data.settings?.site_title}</title>
+	{#if data.rolls.length > 0 && data.rolls[0].cover_url}
+		<meta property="og:image" content={data.rolls[0].cover_url} />
+	{/if}
 </svelte:head>
 
 <div class="max-w-7xl mx-auto px-4 py-8">
-	<h1 class="text-3xl font-medium mb-8">Rolls</h1>
+	<div class="flex items-center justify-between mb-8">
+		<h1 class="text-3xl font-medium">Rolls</h1>
+		<a href="/rolls/browse" class="text-sm text-text-muted hover:text-text transition-colors">Browse all photos &rarr;</a>
+	</div>
 
 	{#if data.rolls.length > 0}
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -31,6 +31,182 @@ A self-hosted photo gallery built for film photographers. Organize your scans by
 - **Pluggable storage** — Local filesystem or any S3-compatible service (AWS, Cloudflare R2, MinIO)
 - **Single-user** — One photographer per instance
 
+## Architecture
+
+### System Overview
+
+```mermaid
+graph TB
+    Browser["Browser"]
+
+    subgraph Frontend["Frontend (SvelteKit :5173)"]
+        SSR["SSR Load Functions"]
+        Client["Client-Side App"]
+    end
+
+    subgraph Backend["Backend (Go :8080)"]
+        Router["chi Router"]
+        Auth["Auth Middleware<br/>JWT Validation"]
+        Handlers["API Handlers"]
+        Media["Media Processor<br/>WebP + BlurHash"]
+    end
+
+    DB[(PostgreSQL)]
+
+    subgraph Storage["Storage (pluggable)"]
+        Local["Local Filesystem"]
+        S3["S3-Compatible"]
+    end
+
+    Browser -->|"HTTP"| Client
+    Client -->|"/api/*"| Router
+    SSR -->|"API_URL"| Router
+    Router --> Auth
+    Router --> Handlers
+    Handlers --> DB
+    Handlers --> Media
+    Media --> Storage
+    Handlers -->|"photo URLs"| Storage
+```
+
+### Data Model
+
+```mermaid
+erDiagram
+    USERS {
+        uuid id PK
+        string email UK
+        string password_hash
+        int token_version
+    }
+
+    ROLLS {
+        uuid id PK
+        string title
+        string slug UK
+        string camera
+        string film_stock
+        string lens
+        string location
+        date shot_at
+        bool published
+        uuid cover_photo_id FK
+        int sort_order
+    }
+
+    PHOTOS {
+        uuid id PK
+        string title
+        string slug UK
+        uuid roll_id FK
+        string camera
+        string film_stock
+        string lens
+        string location
+        bool hidden
+        bool featured
+        jsonb variants
+        int width
+        int height
+        string blurhash
+        int sort_order
+    }
+
+    COLLECTIONS {
+        uuid id PK
+        string title
+        string slug UK
+        string description
+        uuid cover_photo FK
+        int sort_order
+    }
+
+    COLLECTION_PHOTOS {
+        uuid collection_id FK
+        uuid photo_id FK
+        int sort_order
+    }
+
+    SITE_SETTINGS {
+        string key PK
+        jsonb value
+    }
+
+    ROLLS ||--o{ PHOTOS : "contains"
+    ROLLS ||--o| PHOTOS : "cover"
+    COLLECTIONS ||--o| PHOTOS : "cover"
+    COLLECTIONS ||--o{ COLLECTION_PHOTOS : ""
+    PHOTOS ||--o{ COLLECTION_PHOTOS : ""
+```
+
+### Image Upload Pipeline
+
+```mermaid
+flowchart LR
+    Upload["Multipart<br/>Upload"] --> Decode["Decode<br/>Image"]
+    Decode --> Orient["Auto-Orient<br/>(EXIF)"]
+    Orient --> Resize["Generate Variants"]
+
+    Resize --> Thumb["Thumb<br/>400px WebP"]
+    Resize --> Medium["Medium<br/>1200px WebP"]
+    Resize --> Full["Full<br/>2400px WebP"]
+
+    Orient --> Hash["Compute<br/>BlurHash"]
+
+    Thumb --> Store["Store via<br/>Storage Interface"]
+    Medium --> Store
+    Full --> Store
+    Hash --> DB["Save Metadata<br/>to PostgreSQL"]
+    Store --> DB
+```
+
+### Auth Flow
+
+```mermaid
+flowchart TB
+    subgraph Setup["First-Run Setup"]
+        S1["POST /api/auth/setup"] --> S2["Admin account created"]
+    end
+
+    subgraph Login["Login"]
+        L1["POST /api/auth/login"] --> L2["Access token in response body"]
+        L1 --> L3["Refresh token in httpOnly cookie"]
+        L2 --> L4["Stored in memory<br/>(not localStorage)"]
+    end
+
+    subgraph Request["Authenticated Request"]
+        R1["Request + Bearer token"] --> R2{Token valid?}
+        R2 -->|Yes| R3["200 OK"]
+        R2 -->|Expired| R4["401 Unauthorized"]
+        R4 --> R5["POST /api/auth/refresh<br/>+ cookie"]
+        R5 --> R6["New access token"]
+        R6 --> R7["Retry original request"]
+    end
+
+    subgraph Revoke["Session Revocation"]
+        V1["POST /api/auth/change-password"] --> V2["Increment token_version"]
+        V2 --> V3["All refresh tokens invalidated"]
+    end
+
+    Setup --> Login
+    Login --> Request
+```
+
+### Request Flow (Public Page)
+
+```mermaid
+flowchart LR
+    B["Browser"] -->|"GET /rolls/my-roll"| S["SvelteKit SSR"]
+    S -->|"GET /api/rolls/my-roll"| A["Go Backend"]
+    A -->|"Query photos"| DB[(PostgreSQL)]
+    DB -->|"Roll + photos"| A
+    A -->|"Resolve URLs"| St["Storage"]
+    St -->|"Signed URLs"| A
+    A -->|"JSON response"| S
+    S -->|"Rendered HTML"| B
+    B -.->|"Hydrate: further nav<br/>is client-side"| B
+```
+
 ## Tech Stack
 
 | Layer | Technology |
