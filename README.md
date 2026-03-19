@@ -198,11 +198,11 @@ flowchart TB
 flowchart LR
     B["Browser"] -->|"GET /rolls/my-roll"| S["SvelteKit SSR"]
     S -->|"GET /api/rolls/my-roll"| A["Go Backend"]
-    A -->|"SELECT roll + photos<br/>WHERE published AND !hidden"| DB[(PostgreSQL)]
-    DB --> A
-    A -->|"Resolve photo URLs"| St["Storage"]
-    St --> A
-    A -->|"JSON"| S
+    A -->|"Query photos"| DB[(PostgreSQL)]
+    DB -->|"Roll + photos"| A
+    A -->|"Resolve URLs"| St["Storage"]
+    St -->|"Signed URLs"| A
+    A -->|"JSON response"| S
     S -->|"Rendered HTML"| B
     B -.->|"Hydrate: further nav<br/>is client-side"| B
 ```
