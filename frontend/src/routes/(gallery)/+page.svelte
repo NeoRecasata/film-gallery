@@ -36,6 +36,12 @@
 	}
 </script>
 
+<svelte:head>
+	{#if photos.length > 0 && photos[0].urls.medium}
+		<meta property="og:image" content={photos[0].urls.medium} />
+	{/if}
+</svelte:head>
+
 <div class="max-w-7xl mx-auto px-4 py-8">
 	{#if photos.length > 0}
 		<MasonryGrid {photos} onphotoclick={openLightbox}>

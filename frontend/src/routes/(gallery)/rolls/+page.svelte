@@ -6,6 +6,9 @@
 
 <svelte:head>
 	<title>Rolls | {data.settings?.site_title}</title>
+	{#if data.rolls.length > 0 && data.rolls[0].cover_url}
+		<meta property="og:image" content={data.rolls[0].cover_url} />
+	{/if}
 </svelte:head>
 
 <div class="max-w-7xl mx-auto px-4 py-8">
