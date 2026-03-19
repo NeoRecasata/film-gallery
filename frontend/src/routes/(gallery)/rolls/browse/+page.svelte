@@ -3,9 +3,9 @@
 	import MasonryGrid from '$lib/components/MasonryGrid.svelte';
 	import PhotoCard from '$lib/components/PhotoCard.svelte';
 	import Lightbox from '$lib/components/Lightbox.svelte';
-	import type { PageServerData } from './$types';
+	import type { PageData } from './$types';
 
-	let { data }: { data: PageServerData } = $props();
+	let { data }: { data: PageData } = $props();
 	const rolls = $derived(data.rolls);
 
 	// Flatten all photos for lightbox navigation
