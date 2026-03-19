@@ -163,59 +163,48 @@ flowchart LR
 ### Auth Flow
 
 ```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant S as SvelteKit
-    participant A as Go Backend
+flowchart TB
+    subgraph Setup["First-Run Setup"]
+        S1["POST /api/auth/setup"] --> S2["Admin account created"]
+    end
 
-    Note over B,A: First-Run Setup
-    B->>A: POST /api/auth/setup
-    A-->>B: Account created
+    subgraph Login["Login"]
+        L1["POST /api/auth/login"] --> L2["Access token in response body"]
+        L1 --> L3["Refresh token in httpOnly cookie"]
+        L2 --> L4["Stored in memory<br/>(not localStorage)"]
+    end
 
-    Note over B,A: Login
-    B->>A: POST /api/auth/login
-    A-->>B: Access token (body) + Refresh token (httpOnly cookie)
-    Note over B: Access token stored in memory (not localStorage)
+    subgraph Request["Authenticated Request"]
+        R1["Request + Bearer token"] --> R2{Token valid?}
+        R2 -->|Yes| R3["200 OK"]
+        R2 -->|Expired| R4["401 Unauthorized"]
+        R4 --> R5["POST /api/auth/refresh<br/>+ cookie"]
+        R5 --> R6["New access token"]
+        R6 --> R7["Retry original request"]
+    end
 
-    Note over B,A: Authenticated Request
-    B->>A: GET /api/admin/* + Authorization: Bearer <access>
-    A-->>B: 200 OK
+    subgraph Revoke["Session Revocation"]
+        V1["POST /api/auth/change-password"] --> V2["Increment token_version"]
+        V2 --> V3["All refresh tokens invalidated"]
+    end
 
-    Note over B,A: Token Expired
-    B->>A: GET /api/admin/* + expired token
-    A-->>B: 401 Unauthorized
-    B->>A: POST /api/auth/refresh + cookie
-    A-->>B: New access token
-    B->>A: Retry original request
-    A-->>B: 200 OK
-
-    Note over B,A: Password Change (revokes all sessions)
-    B->>A: POST /api/auth/change-password
-    A->>A: Increment token_version
-    Note over A: All existing refresh tokens invalidated
+    Setup --> Login
+    Login --> Request
 ```
 
 ### Request Flow (Public Page)
 
 ```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant S as SvelteKit Server
-    participant A as Go Backend
-    participant DB as PostgreSQL
-    participant St as Storage
-
-    B->>S: GET /rolls/my-roll
-    Note over S: SSR load function
-    S->>A: GET /api/rolls/my-roll
-    A->>DB: SELECT roll + photos<br/>WHERE published = true<br/>AND hidden = false
-    DB-->>A: Roll data + photos
-    A->>St: Resolve photo URLs
-    St-->>A: Signed/public URLs
-    A-->>S: JSON response
-    Note over S: Render HTML with data
-    S-->>B: Full HTML page
-    Note over B: Hydrate — further<br/>navigation is client-side
+flowchart LR
+    B["Browser"] -->|"GET /rolls/my-roll"| S["SvelteKit SSR"]
+    S -->|"GET /api/rolls/my-roll"| A["Go Backend"]
+    A -->|"SELECT roll + photos<br/>WHERE published AND !hidden"| DB[(PostgreSQL)]
+    DB --> A
+    A -->|"Resolve photo URLs"| St["Storage"]
+    St --> A
+    A -->|"JSON"| S
+    S -->|"Rendered HTML"| B
+    B -.->|"Hydrate: further nav<br/>is client-side"| B
 ```
 
 ## Tech Stack
