@@ -31,6 +31,193 @@ A self-hosted photo gallery built for film photographers. Organize your scans by
 - **Pluggable storage** — Local filesystem or any S3-compatible service (AWS, Cloudflare R2, MinIO)
 - **Single-user** — One photographer per instance
 
+## Architecture
+
+### System Overview
+
+```mermaid
+graph TB
+    Browser["Browser"]
+
+    subgraph Frontend["Frontend (SvelteKit :5173)"]
+        SSR["SSR Load Functions"]
+        Client["Client-Side App"]
+    end
+
+    subgraph Backend["Backend (Go :8080)"]
+        Router["chi Router"]
+        Auth["Auth Middleware<br/>JWT Validation"]
+        Handlers["API Handlers"]
+        Media["Media Processor<br/>WebP + BlurHash"]
+    end
+
+    DB[(PostgreSQL)]
+
+    subgraph Storage["Storage (pluggable)"]
+        Local["Local Filesystem"]
+        S3["S3-Compatible"]
+    end
+
+    Browser -->|"HTTP"| Client
+    Client -->|"/api/*"| Router
+    SSR -->|"API_URL"| Router
+    Router --> Auth
+    Router --> Handlers
+    Handlers --> DB
+    Handlers --> Media
+    Media --> Storage
+    Handlers -->|"photo URLs"| Storage
+```
+
+### Data Model
+
+```mermaid
+erDiagram
+    USERS {
+        uuid id PK
+        string email UK
+        string password_hash
+        int token_version
+    }
+
+    ROLLS {
+        uuid id PK
+        string title
+        string slug UK
+        string camera
+        string film_stock
+        string lens
+        string location
+        date shot_at
+        bool published
+        uuid cover_photo_id FK
+        int sort_order
+    }
+
+    PHOTOS {
+        uuid id PK
+        string title
+        string slug UK
+        uuid roll_id FK
+        string camera
+        string film_stock
+        string lens
+        string location
+        bool hidden
+        bool featured
+        jsonb variants
+        int width
+        int height
+        string blurhash
+        int sort_order
+    }
+
+    COLLECTIONS {
+        uuid id PK
+        string title
+        string slug UK
+        string description
+        uuid cover_photo FK
+        int sort_order
+    }
+
+    COLLECTION_PHOTOS {
+        uuid collection_id FK
+        uuid photo_id FK
+        int sort_order
+    }
+
+    SITE_SETTINGS {
+        string key PK
+        jsonb value
+    }
+
+    ROLLS ||--o{ PHOTOS : "contains"
+    ROLLS ||--o| PHOTOS : "cover"
+    COLLECTIONS ||--o| PHOTOS : "cover"
+    COLLECTIONS ||--o{ COLLECTION_PHOTOS : ""
+    PHOTOS ||--o{ COLLECTION_PHOTOS : ""
+```
+
+### Image Upload Pipeline
+
+```mermaid
+flowchart LR
+    Upload["Multipart<br/>Upload"] --> Decode["Decode<br/>Image"]
+    Decode --> Orient["Auto-Orient<br/>(EXIF)"]
+    Orient --> Resize["Generate Variants"]
+
+    Resize --> Thumb["Thumb<br/>400px WebP"]
+    Resize --> Medium["Medium<br/>1200px WebP"]
+    Resize --> Full["Full<br/>2400px WebP"]
+
+    Orient --> Hash["Compute<br/>BlurHash"]
+
+    Thumb --> Store["Store via<br/>Storage Interface"]
+    Medium --> Store
+    Full --> Store
+    Hash --> DB["Save Metadata<br/>to PostgreSQL"]
+    Store --> DB
+```
+
+### Auth Flow
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant S as SvelteKit
+    participant A as Go Backend
+
+    Note over B,A: First-Run Setup
+    B->>A: POST /api/auth/setup
+    A-->>B: Account created
+
+    Note over B,A: Login
+    B->>A: POST /api/auth/login
+    A-->>B: Access token (body) + Refresh token (httpOnly cookie)
+    Note over B: Access token stored in memory (not localStorage)
+
+    Note over B,A: Authenticated Request
+    B->>A: GET /api/admin/* + Authorization: Bearer <access>
+    A-->>B: 200 OK
+
+    Note over B,A: Token Expired
+    B->>A: GET /api/admin/* + expired token
+    A-->>B: 401 Unauthorized
+    B->>A: POST /api/auth/refresh + cookie
+    A-->>B: New access token
+    B->>A: Retry original request
+    A-->>B: 200 OK
+
+    Note over B,A: Password Change (revokes all sessions)
+    B->>A: POST /api/auth/change-password
+    A->>A: Increment token_version
+    Note over A: All existing refresh tokens invalidated
+```
+
+### Request Flow (Public Page)
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant S as SvelteKit Server
+    participant A as Go Backend
+    participant DB as PostgreSQL
+    participant St as Storage
+
+    B->>S: GET /rolls/my-roll
+    Note over S: SSR load function
+    S->>A: GET /api/rolls/my-roll
+    A->>DB: SELECT roll + photos<br/>WHERE published = true<br/>AND hidden = false
+    DB-->>A: Roll data + photos
+    A->>St: Resolve photo URLs
+    St-->>A: Signed/public URLs
+    A-->>S: JSON response
+    Note over S: Render HTML with data
+    S-->>B: Full HTML page
+    Note over B: Hydrate — further<br/>navigation is client-side
+```
+
 ## Tech Stack
 
 | Layer | Technology |
