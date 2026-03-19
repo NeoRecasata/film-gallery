@@ -6,6 +6,7 @@
 	import { toasts } from '$lib/stores/toast';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import Sortable from 'sortablejs';
 
 	let collectionId = $derived(page.params.id as string);
 	let collection = $state<Collection | null>(null);
@@ -39,8 +40,6 @@
 	let reordering = $state(false);
 	let reorderPhotos = $state<Photo[]>([]);
 	let savingReorder = $state(false);
-	let dragIndex = $state<number | null>(null);
-	let dragOverIndex = $state<number | null>(null);
 
 	// Confirm dialog state
 	let confirmOpen = $state(false);
@@ -65,22 +64,22 @@
 		return cols;
 	});
 
-	const reorderDistributed = $derived.by(() => {
-		const cols: Photo[][] = Array.from({ length: columnCount }, () => []);
-		const heights = new Array(columnCount).fill(0);
-		for (const photo of reorderPhotos) {
-			const shortest = heights.indexOf(Math.min(...heights));
-			cols[shortest].push(photo);
-			heights[shortest] += photo.height / photo.width;
-		}
-		return cols;
-	});
-
-	const reorderIndexOf = $derived.by(() => {
-		const map = new Map<string, number>();
-		reorderPhotos.forEach((p, i) => map.set(p.id, i));
-		return map;
-	});
+	function sortableGrid(node: HTMLElement) {
+		const sortable = Sortable.create(node, {
+			animation: 150,
+			ghostClass: 'opacity-30',
+			onEnd(evt) {
+				if (evt.oldIndex == null || evt.newIndex == null) return;
+				const updated = [...reorderPhotos];
+				const [moved] = updated.splice(evt.oldIndex, 1);
+				updated.splice(evt.newIndex, 0, moved);
+				reorderPhotos = updated;
+			}
+		});
+		return {
+			destroy() { sortable.destroy(); }
+		};
+	}
 
 	$effect(() => {
 		loadCollection();
@@ -249,8 +248,6 @@
 	function cancelReorder() {
 		reordering = false;
 		reorderPhotos = [];
-		dragIndex = null;
-		dragOverIndex = null;
 	}
 
 	async function saveReorder() {
@@ -269,26 +266,6 @@
 		} finally {
 			savingReorder = false;
 		}
-	}
-
-	function handleDragStart(index: number) {
-		dragIndex = index;
-	}
-
-	function handleDragOver(e: DragEvent, index: number) {
-		e.preventDefault();
-		if (dragIndex === null || dragIndex === index) return;
-		const updated = [...reorderPhotos];
-		const [moved] = updated.splice(dragIndex, 1);
-		updated.splice(index, 0, moved);
-		reorderPhotos = updated;
-		dragIndex = index;
-		dragOverIndex = index;
-	}
-
-	function handleDragEnd() {
-		dragIndex = null;
-		dragOverIndex = null;
 	}
 
 	function handleKeyboardSave(e: KeyboardEvent) {
@@ -445,31 +422,17 @@
 							{/each}
 						</div>
 					{:else if reordering}
-						<!-- Masonry grid for reorder -->
-						<div class="flex gap-2" bind:clientWidth={gridWidth}>
-							{#each reorderDistributed as column}
-								<div class="flex-1 flex flex-col gap-2">
-									{#each column as photo (photo.id)}
-										{@const flatIndex = reorderIndexOf.get(photo.id) ?? 0}
-										<!-- svelte-ignore a11y_no_static_element_interactions -->
-										<div
-											draggable="true"
-											ondragstart={() => handleDragStart(flatIndex)}
-											ondragover={(e) => handleDragOver(e, flatIndex)}
-											ondragend={handleDragEnd}
-											class="relative rounded overflow-hidden cursor-grab active:cursor-grabbing
-												{dragIndex === flatIndex ? 'opacity-40' : ''}"
-										>
-											<img
-												src={photo.urls.thumb}
-												alt={photo.title || ''}
-												class="w-full h-auto block"
-												style:aspect-ratio="{photo.width} / {photo.height}"
-												draggable="false"
-											/>
-											<span class="absolute top-1 left-1 w-5 h-5 rounded bg-black/60 text-white text-[10px] font-medium flex items-center justify-center">{flatIndex + 1}</span>
-										</div>
-									{/each}
+						<div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2" use:sortableGrid>
+							{#each reorderPhotos as photo, index (photo.id)}
+								<div class="relative rounded overflow-hidden cursor-grab active:cursor-grabbing">
+									<img
+										src={photo.urls.thumb}
+										alt={photo.title || ''}
+										class="w-full h-auto block"
+										style:aspect-ratio="{photo.width} / {photo.height}"
+										draggable="false"
+									/>
+									<span class="absolute top-1 left-1 w-5 h-5 rounded bg-black/60 text-white text-[10px] font-medium flex items-center justify-center">{index + 1}</span>
 								</div>
 							{/each}
 						</div>
