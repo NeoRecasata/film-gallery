@@ -8,6 +8,8 @@
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import MetadataSelect from '$lib/components/admin/MetadataSelect.svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import BottomSheet from '$lib/components/admin/BottomSheet.svelte';
+	import Sortable from 'sortablejs';
 
 	let rollId = $derived(page.params.id as string);
 	let roll = $state<Roll | null>(null);
@@ -86,8 +88,6 @@
 	let reordering = $state(false);
 	let reorderPhotos = $state<Photo[]>([]);
 	let savingReorder = $state(false);
-	let dragIndex = $state<number | null>(null);
-	let dragOverIndex = $state<number | null>(null);
 
 	// Confirm dialog state
 	let confirmOpen = $state(false);
@@ -96,6 +96,7 @@
 	let confirmLabel = $state('Delete');
 	let confirmAction = $state<(() => void) | null>(null);
 	const selectedPhoto = $derived(photos.find(p => p.id === selectedPhotoId) || null);
+	const showMobileEditor = $derived(!!selectedPhoto && !reordering && !selecting);
 
 	// Masonry columns
 	let gridWidth = $state(0);
@@ -111,25 +112,6 @@
 			heights[shortest] += photo.height / photo.width;
 		}
 		return cols;
-	});
-
-	const reorderDistributed = $derived.by(() => {
-		const cols: Photo[][] = Array.from({ length: columnCount }, () => []);
-		const heights = new Array(columnCount).fill(0);
-
-		for (const photo of reorderPhotos) {
-			const shortest = heights.indexOf(Math.min(...heights));
-			cols[shortest].push(photo);
-			heights[shortest] += photo.height / photo.width;
-		}
-		return cols;
-	});
-
-	// Flat index lookup for reorder drag operations
-	const reorderIndexOf = $derived.by(() => {
-		const map = new Map<string, number>();
-		reorderPhotos.forEach((p, i) => map.set(p.id, i));
-		return map;
 	});
 
 	$effect(() => {
@@ -420,8 +402,6 @@
 	function cancelReorder() {
 		reordering = false;
 		reorderPhotos = [];
-		dragIndex = null;
-		dragOverIndex = null;
 	}
 
 	async function saveReorder() {
@@ -440,27 +420,6 @@
 		} finally {
 			savingReorder = false;
 		}
-	}
-
-	function handleDragStart(index: number) {
-		dragIndex = index;
-	}
-
-	function handleDragOver(e: DragEvent, index: number) {
-		e.preventDefault();
-		if (dragIndex === null || dragIndex === index) return;
-		// Move the dragged item to the new position
-		const updated = [...reorderPhotos];
-		const [moved] = updated.splice(dragIndex, 1);
-		updated.splice(index, 0, moved);
-		reorderPhotos = updated;
-		dragIndex = index;
-		dragOverIndex = index;
-	}
-
-	function handleDragEnd() {
-		dragIndex = null;
-		dragOverIndex = null;
 	}
 
 	// Bulk select functions
@@ -557,6 +516,23 @@
 
 	function handleConfirm() {
 		if (confirmAction) confirmAction();
+	}
+
+	function sortableGrid(node: HTMLElement) {
+		const sortable = Sortable.create(node, {
+			animation: 150,
+			ghostClass: 'opacity-30',
+			onEnd(evt) {
+				if (evt.oldIndex == null || evt.newIndex == null) return;
+				const updated = [...reorderPhotos];
+				const [moved] = updated.splice(evt.oldIndex, 1);
+				updated.splice(evt.newIndex, 0, moved);
+				reorderPhotos = updated;
+			}
+		});
+		return {
+			destroy() { sortable.destroy(); }
+		};
 	}
 
 	function handleKeyboardSave(e: KeyboardEvent) {
@@ -771,42 +747,21 @@
 				<div class="flex-1 overflow-y-auto rounded [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {selectedPhoto && !reordering && !selecting ? 'pb-[200px]' : ''}">
 					{#if photos.length === 0}
 					{:else if reordering}
-						<!-- Masonry grid for reorder mode -->
-						<div class="flex gap-2" bind:clientWidth={gridWidth}>
-							{#each reorderDistributed as column}
-								<div class="flex-1 flex flex-col gap-2">
-									{#each column as photo (photo.id)}
-										{@const flatIndex = reorderIndexOf.get(photo.id) ?? 0}
-										<!-- svelte-ignore a11y_no_static_element_interactions -->
-										<div
-											draggable="true"
-											ondragstart={() => handleDragStart(flatIndex)}
-											ondragover={(e) => handleDragOver(e, flatIndex)}
-											ondragend={handleDragEnd}
-											class="relative rounded overflow-hidden cursor-grab active:cursor-grabbing
-												{dragIndex === flatIndex ? 'opacity-40' : ''}"
-										>
-											<img
-												src={photo.urls.thumb}
-												alt={photo.title || ''}
-												class="w-full h-auto block"
-												style:aspect-ratio="{photo.width} / {photo.height}"
-												draggable="false"
-											/>
-											<span class="absolute top-1 left-1 w-5 h-5 rounded bg-black/60 text-white text-[10px] font-medium flex items-center justify-center">
-												{flatIndex + 1}
-											</span>
-											{#if photo.hidden}
-												<span class="absolute top-1 right-1 px-1 py-0.5 bg-error/80 text-white text-[9px] font-semibold uppercase rounded">Hidden</span>
-											{/if}
-											{#if photo.featured}
-												<span class="absolute bottom-1 left-1 px-1 py-0.5 bg-amber-500/80 text-white text-[9px] font-semibold uppercase rounded">Featured</span>
-											{/if}
-											{#if photo.id === roll.cover_photo_id}
-												<span class="absolute bottom-1 right-1 px-1 py-0.5 bg-amber-500/80 text-white text-[9px] font-semibold uppercase rounded">Cover</span>
-											{/if}
-										</div>
-									{/each}
+						<!-- Flat grid for reorder (SortableJS) -->
+						<div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2" use:sortableGrid>
+							{#each reorderPhotos as photo, index (photo.id)}
+								<div class="relative rounded overflow-hidden cursor-grab active:cursor-grabbing">
+									<img
+										src={photo.urls.thumb}
+										alt={photo.title || ''}
+										class="w-full h-auto block"
+										style:aspect-ratio="{photo.width} / {photo.height}"
+										draggable="false"
+									/>
+									<span class="absolute top-1 left-1 w-5 h-5 rounded bg-black/60 text-white text-[10px] font-medium flex items-center justify-center">{index + 1}</span>
+									{#if photo.hidden}
+										<span class="absolute top-1 right-1 px-1 py-0.5 bg-red-500/80 text-white text-[9px] font-semibold uppercase rounded">Hidden</span>
+									{/if}
 								</div>
 							{/each}
 						</div>
@@ -999,4 +954,72 @@
 		</div>
 	</div>
 {/if}
+
+<!-- Mobile photo editor bottom sheet -->
+<div class="lg:hidden">
+	<BottomSheet open={showMobileEditor} onclose={() => selectedPhotoId = null}>
+		{#if selectedPhoto}
+			<div class="space-y-4">
+				<!-- Preview -->
+				<div class="flex gap-3 items-start">
+					<img
+						src={selectedPhoto.urls.thumb}
+						alt={selectedPhoto.title || ''}
+						class="w-20 h-20 object-cover rounded"
+					/>
+					<div class="flex-1 min-w-0">
+						<p class="text-sm font-medium truncate">{selectedPhoto.title || 'Untitled'}</p>
+						<div class="flex gap-2 mt-2">
+							<button
+								onclick={() => { photoHidden = !photoHidden; }}
+								class="px-2 py-1 rounded text-xs font-medium transition-colors
+									{photoHidden ? 'bg-amber-600/20 text-amber-400' : 'bg-surface-hover text-text-muted'}"
+							>
+								{photoHidden ? 'Hidden' : 'Visible'}
+							</button>
+							<button
+								onclick={() => toggleFeaturedInline(selectedPhoto, new MouseEvent('click'))}
+								class="px-2 py-1 rounded text-xs font-medium transition-colors
+									{selectedPhoto.featured ? 'bg-amber-600/20 text-amber-400' : 'bg-surface-hover text-text-muted'}"
+							>
+								{selectedPhoto.featured ? 'Featured' : 'Not Featured'}
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<!-- Fields -->
+				<div class="space-y-3">
+					<input bind:value={photoTitle} placeholder="Title" class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent" />
+					<textarea bind:value={photoDescription} placeholder="Description" rows="2" class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent resize-none"></textarea>
+					<div class="grid grid-cols-2 gap-3">
+						<input bind:value={photoCamera} placeholder="Camera" class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent" />
+						<input bind:value={photoFilmStock} placeholder="Film stock" class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent" />
+						<input bind:value={photoLens} placeholder="Lens" class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent" />
+						<input bind:value={photoLocation} placeholder="Location" class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent" />
+					</div>
+					<input bind:value={photoTakenAt} type="date" class="w-full px-3 py-2 bg-bg border border-border rounded-md text-sm focus:outline-none focus:border-accent" />
+				</div>
+
+				<!-- Actions -->
+				<div class="flex gap-2">
+					<button
+						onclick={savePhoto}
+						disabled={savingPhoto}
+						class="flex-1 px-4 py-2.5 rounded-md text-sm font-medium bg-amber-600 hover:bg-amber-500 text-white transition-colors disabled:opacity-50"
+					>
+						{savingPhoto ? 'Saving...' : 'Save'}
+					</button>
+					<button
+						onclick={requestDeletePhoto}
+						disabled={deletingPhoto}
+						class="px-4 py-2.5 rounded-md text-sm font-medium border border-error/30 text-error/70 hover:text-error hover:border-error/60 transition-colors disabled:opacity-50"
+					>
+						Delete
+					</button>
+				</div>
+			</div>
+		{/if}
+	</BottomSheet>
+</div>
 
